@@ -1,60 +1,56 @@
 
 
-let travels = JSON.parse(localStorage.getItem("travels")) || [];
 let visitedCountries = JSON.parse(localStorage.getItem("countries")) || [];
 
-
-
-window.toggleMenu = function () {
-  document.getElementById("sidebar").classList.toggle("open");
-};
-
-// 🌍 GLOBE
 const globe = Globe()
 (document.getElementById("globeViz"))
   .globeImageUrl("https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg")
   .bumpImageUrl("https://unpkg.com/three-globe/example/img/earth-topology.png")
   .backgroundColor("#eaf3ff");
 
-// 🌍 LÄNDER DATEN
-let countriesData = [];
+let geoData = [];
 
 // 🌍 LOAD COUNTRIES
 fetch("https://raw.githubusercontent.com/mledoze/countries/master/countries.geojson")
 .then(res => res.json())
 .then(data => {
 
-  countriesData = data.features;
+  geoData = data.features;
 
-  globe.polygonsData(countriesData)
+  renderGlobe();
 
-    .polygonStrokeColor(() => "#555")
+});
 
-    // ⭐ WICHTIG: FÄRBUNG NACH NAME MATCH
+function renderGlobe() {
+
+  globe.polygonsData(geoData)
+
+    .polygonStrokeColor(() => "#444")
+
+    // ⭐ LAND FÄRBEN (KORREKTES MATCHING)
     .polygonCapColor(d => {
 
       const name = d.properties.name;
 
       return visitedCountries.includes(name)
-        ? "rgba(0,140,255,0.55)"   // FARBIGES LAND
+        ? "rgba(0,140,255,0.6)"
         : "rgba(255,255,255,0.03)";
     })
 
     .onPolygonHover(d => {
       document.body.style.cursor = d ? "pointer" : "default";
     });
-});
+}
 
-// ➕ LAND HINZUFÜGEN (TEXT INPUT)
-window.addTravel = function () {
+// ➕ LAND HINZUFÜGEN
+window.addCountry = function () {
 
-  const country = document.getElementById("countryInput").value;
+  const input = document.getElementById("countryInput").value;
 
-  if (!country) return;
+  if (!input) return;
 
-  // 🔥 LAND IN LISTE
-  if (!visitedCountries.includes(country)) {
-    visitedCountries.push(country);
+  if (!visitedCountries.includes(input)) {
+    visitedCountries.push(input);
   }
 
   save();
@@ -64,14 +60,11 @@ window.addTravel = function () {
 // 💾 SAVE
 function save() {
   localStorage.setItem("countries", JSON.stringify(visitedCountries));
-  localStorage.setItem("travels", JSON.stringify(travels));
 }
 
 // 🔄 UPDATE
 function update() {
-
-  globe.polygonsData(countriesData);
-
+  renderGlobe();
   renderList();
 }
 
@@ -79,12 +72,17 @@ function update() {
 function renderList() {
 
   const el = document.getElementById("countryList");
-  el.innerHTML = "<h3>🌍 Länder</h3>";
+  el.innerHTML = "<h3>Länder</h3>";
 
   visitedCountries.forEach(c => {
     el.innerHTML += `<div>${c}</div>`;
   });
 }
+
+// 🍔 TOGGLE MENU
+window.toggleMenu = function () {
+  document.getElementById("sidebar").classList.toggle("open");
+};
 
 // INIT
 update();
