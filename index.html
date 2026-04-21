@@ -9,23 +9,24 @@
 
   <script src="https://unpkg.com/three"></script>
   <script src="https://unpkg.com/globe.gl"></script>
-  <script src="https://unpkg.com/topojson-client@3"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
 <body>
 
+<!-- 🍔 MOBILE MENU BUTTON -->
+<button class="menu-btn" onclick="toggleMenu()">☰</button>
+
 <div class="app">
 
-  <!-- SIDEBAR -->
-  <div class="sidebar">
+  <div class="sidebar" id="sidebar">
 
-    <h1>🌍 Travel Globe PRO</h1>
+    <h1>🌍 Travel Globe</h1>
 
     <div class="form">
 
-      <input id="countryInput" placeholder="Land (optional, Klick reicht)" />
-      <input id="cityInput" placeholder="Stadt suchen (z. B. Sydney)" />
+      <input id="countryInput" placeholder="Land hinzufügen (oder auf Globus klicken)" />
+      <input id="cityInput" placeholder="Stadt (optional)" />
 
       <select id="rating">
         <option value="5">⭐⭐⭐⭐⭐</option>
@@ -35,7 +36,7 @@
         <option value="1">⭐</option>
       </select>
 
-      <button onclick="addCity()">➕ Reise hinzufügen</button>
+      <button onclick="addTravel()">➕ Speichern</button>
 
     </div>
 
