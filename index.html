@@ -3,351 +3,91 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>REAL WORLD TRAVEL APP</title>
+<title>Interactive Globe Core</title>
 
 <script src="https://unpkg.com/three@0.156.1/build/three.min.js"></script>
 <script src="https://unpkg.com/globe.gl@2.30.1/dist/globe.gl.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
 <style>
-
 body{
 margin:0;
-font-family:Arial;
-background:#eef3ff;
 overflow:hidden;
-}
-
-/* HEADER */
-header{
-position:fixed;
-top:0;left:0;right:0;
-height:60px;
-background:white;
-display:flex;
-justify-content:space-between;
-align-items:center;
-padding:0 12px;
-box-shadow:0 2px 10px rgba(0,0,0,0.08);
-z-index:10;
-}
-
-/* NAV */
-nav button{
-margin:0 3px;
-padding:6px 10px;
-border:none;
-border-radius:8px;
-background:#2563eb;
-color:white;
-cursor:pointer;
-}
-
-/* LAYOUT */
-#app{
-display:flex;
-height:100vh;
-padding-top:60px;
-}
-
-#sidebar{
-width:340px;
-background:white;
-overflow:auto;
-padding:10px;
+font-family:Arial;
+background:#0b1220;
 }
 
 #globe{
-flex:1;
+width:100vw;
+height:100vh;
 }
-
-/* VIEWS */
-.view{display:none;}
-.view.active{display:block;}
-
-/* INPUTS */
-input,textarea{
-width:100%;
-padding:8px;
-margin:5px 0;
-border-radius:8px;
-border:1px solid #ddd;
-}
-
-/* BUTTON */
-.action{
-width:100%;
-padding:10px;
-background:#2563eb;
-color:white;
-border:none;
-border-radius:10px;
-cursor:pointer;
-margin-top:5px;
-}
-
-/* CARD */
-.card{
-background:#f1f6ff;
-padding:8px;
-margin-top:6px;
-border-radius:10px;
-}
-
-/* FLAG */
-.flag{
-width:50px;
-margin:3px;
-}
-
-@media(max-width:900px){
-#sidebar{
-position:absolute;
-bottom:0;
-top:60px;
-width:100%;
-}
-}
-
 </style>
 </head>
 
 <body>
 
-<header>
-<div>🌍 REAL WORLD TRAVEL APP</div>
-<nav>
-<button onclick="view('map')">Map</button>
-<button onclick="view('plan')">Plan</button>
-<button onclick="view('stats')">Stats</button>
-<button onclick="view('diary')">Diary</button>
-<button onclick="exportView()">Export</button>
-</nav>
-</header>
-
-<div id="app">
-
-<!-- SIDEBAR -->
-<div id="sidebar">
-
-<!-- MAP -->
-<div id="map" class="view active">
-<h3>🌍 Globe Control</h3>
-<p>Klicke auf Länder → speichern</p>
-</div>
-
-<!-- PLAN -->
-<div id="plan" class="view">
-<h3>✈️ Reiseplan</h3>
-<input id="pCountry" placeholder="Land">
-<input id="pCity" placeholder="Stadt">
-<input id="pDate" type="date">
-<button class="action" onclick="addPlan()">Speichern</button>
-<div id="planList"></div>
-</div>
-
-<!-- STATS -->
-<div id="stats" class="view">
-<h3>📊 Statistik</h3>
-<div id="statsBox"></div>
-<canvas id="chart"></canvas>
-</div>
-
-<!-- DIARY -->
-<div id="diary" class="view">
-<h3>📖 Reisetagebuch</h3>
-<input id="dNote" placeholder="Notiz">
-<button class="action" onclick="addNote()">Speichern</button>
-<div id="diaryList"></div>
-</div>
-
-<h3>Reisen</h3>
-<div id="tripList"></div>
-
-<h3>Flaggen</h3>
-<div id="flagList"></div>
-
-</div>
-
-<!-- GLOBE -->
 <div id="globe"></div>
-
-</div>
 
 <script>
 
-/* ======================
-   STATE ENGINE
-====================== */
+/* =========================
+   STATE (Reise-Daten)
+========================= */
 
-let trips = JSON.parse(localStorage.getItem("trips")||"[]");
-let plans = JSON.parse(localStorage.getItem("plans")||"[]");
-let diary = JSON.parse(localStorage.getItem("diary")||"[]");
+let visited = new Set();
 
-let visited = new Set(trips.map(t=>t.country));
-
-function save(){
-localStorage.setItem("trips",JSON.stringify(trips));
-localStorage.setItem("plans",JSON.stringify(plans));
-localStorage.setItem("diary",JSON.stringify(diary));
-}
-
-/* ======================
-   GLOBE ENGINE
-====================== */
+/* =========================
+   GLOBE INIT (CORE)
+========================= */
 
 const globe = Globe()
-(document.getElementById("globe"))
-.globeImageUrl("https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg")
-.bumpImageUrl("https://unpkg.com/three-globe/example/img/earth-topology.png")
-.onPolygonClick(p=>{
-selectCountry(p.properties.name);
-});
+(document.getElementById('globe'))
+.globeImageUrl('https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg')
+.bumpImageUrl('https://unpkg.com/three-globe/example/img/earth-topology.png')
+.showAtmosphere(true)
+.atmosphereColor('lightskyblue')
+.atmosphereAltitude(0.25);
 
-fetch("https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson")
-.then(r=>r.json())
-.then(world=>{
-globe.polygonsData(world.features)
-.polygonCapColor(d=>{
+/* =========================
+   LOAD COUNTRIES (REAL GEOJSON)
+========================= */
+
+fetch('https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson')
+.then(res => res.json())
+.then(world => {
+
+globe
+.polygonsData(world.features)
+.polygonAltitude(0.01)
+.polygonCapColor(d => {
 return visited.has(d.properties.name)
-? "rgba(37,99,235,0.6)"
-: "rgba(0,0,0,0.05)";
+? 'rgba(0,200,120,0.6)'   // visited = grün
+: 'rgba(255,255,255,0.05)'; // default
 })
-.polygonStrokeColor(()=>"#2563eb");
-});
+.polygonStrokeColor(() => '#1e3a8a')
+.polygonSideColor(() => 'rgba(0,0,0,0.05)')
 
-/* ======================
-   CORE LOGIC
-====================== */
-
-function selectCountry(country){
+/* CLICK EVENT */
+.onPolygonClick(d => {
+const country = d.properties.name;
 
 visited.add(country);
 
-trips.push({
-country,
-city:"auto",
-date:new Date().toISOString().split("T")[0],
-note:"globe click"
+console.log("Visited:", country);
+
+/* UPDATE COLORS */
+globe.polygonsData(world.features);
+});
 });
 
-save();
-render();
-}
+/* =========================
+   CAMERA START POSITION
+========================= */
 
-/* ======================
-   PLAN
-====================== */
-
-function addPlan(){
-plans.push({
-country:pCountry.value,
-city:pCity.value,
-date:pDate.value
-});
-save();
-render();
-}
-
-/* ======================
-   DIARY
-====================== */
-
-function addNote(){
-diary.push({
-text:dNote.value,
-date:new Date().toISOString().split("T")[0]
-});
-save();
-render();
-}
-
-/* ======================
-   RENDER
-====================== */
-
-function render(){
-renderTrips();
-renderPlans();
-renderStats();
-renderFlags();
-renderDiary();
-}
-
-function renderTrips(){
-tripList.innerHTML = trips.map(t=>
-`<div class="card"><b>${t.country}</b><br>${t.date}</div>`
-).join("");
-}
-
-function renderPlans(){
-planList.innerHTML = plans.map(p=>{
-let days = Math.ceil((new Date(p.date)-new Date())/86400000);
-return `<div class="card">${p.country} - ${days} Tage</div>`;
-}).join("");
-}
-
-function renderDiary(){
-diaryList.innerHTML = diary.map(d=>
-`<div class="card">${d.date}<br>${d.text}</div>`
-).join("");
-}
-
-function renderFlags(){
-flagList.innerHTML="";
-visited.forEach(c=>{
-flagList.innerHTML += `<img class="flag" src="https://flagcdn.com/48x36/${c.slice(0,2).toLowerCase()}.png">`;
-});
-}
-
-/* ======================
-   STATS ENGINE
-====================== */
-
-function renderStats(){
-
-let c = visited.size;
-let percent = (c/195*100).toFixed(1);
-
-statsBox.innerHTML=`
-<b>Länder:</b> ${c}<br>
-<b>Welt:</b> ${percent}%
-`;
-
-new Chart(chart,{
-type:"doughnut",
-data:{
-labels:["Visited","Remaining"],
-datasets:[{data:[c,195-c]}]
-}
-});
-}
-
-/* ======================
-   NAVIGATION
-====================== */
-
-function view(v){
-document.querySelectorAll(".view").forEach(x=>x.classList.remove("active"));
-document.getElementById(v).classList.add("active");
-}
-
-/* ======================
-   EXPORT
-====================== */
-
-function exportView(){
-html2canvas(document.body).then(canvas=>{
-let a=document.createElement("a");
-a.download="travel-app.png";
-a.href=canvas.toDataURL();
-a.click();
-});
-}
-
-/* INIT */
-render();
+globe.pointOfView({
+lat: 20,
+lng: 0,
+altitude: 2.5
+}, 0);
 
 </script>
 
