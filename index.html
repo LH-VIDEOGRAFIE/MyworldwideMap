@@ -3,86 +3,108 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>My World Wide Trip – ULTRA</title>
+<title>My World Wide Trip – GOOGLE MAPS LEVEL</title>
 
 <script src="https://unpkg.com/globe.gl"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
 <style>
 :root{
-  --bg:#050814;
-  --panel:#0e1730;
-  --accent:#4cc9f0;
-  --accent2:#a78bfa;
-  --text:#ffffff;
+  --bg:#f6f8fc;
+  --panel:#ffffff;
+  --accent:#1a73e8;
+  --accent2:#7c3aed;
+  --text:#0f172a;
+  --soft:#eef2ff;
 }
 
 *{box-sizing:border-box}
 
 body{
   margin:0;
-  font-family:Arial;
+  font-family:Arial, sans-serif;
   background:var(--bg);
   color:var(--text);
-  overflow:hidden;
+  overflow-y:auto;
+  height:100vh;
 }
 
-/* TOP NAV */
+/* TOP BAR */
 .topnav{
   position:fixed;
   top:0;left:0;right:0;
   height:60px;
-  background:#0b1226;
+  background:var(--panel);
   display:flex;
   align-items:center;
   justify-content:space-between;
-  padding:0 10px;
-  z-index:2000;
-  border-bottom:1px solid #1f2a4a;
+  padding:0 12px;
+  z-index:3000;
+  border-bottom:1px solid #e5e7eb;
 }
 
 .logo{
-  background:white;
-  color:black;
-  padding:6px 10px;
-  border-radius:8px;
   font-weight:bold;
+  background:var(--accent);
+  color:white;
+  padding:6px 10px;
+  border-radius:10px;
+}
+
+.burger{
+  display:none;
+  font-size:26px;
+  cursor:pointer;
+}
+
+.nav{
+  display:flex;
+  gap:8px;
 }
 
 .nav button{
   background:transparent;
-  border:1px solid #2b3b66;
-  color:white;
+  border:1px solid #d1d5db;
   padding:6px 10px;
   border-radius:8px;
   cursor:pointer;
 }
 
+/* LAYOUT */
 .container{
   display:flex;
-  height:100vh;
-  padding-top:60px;
+  margin-top:60px;
+  height:calc(100vh - 60px);
 }
 
 .sidebar{
-  width:360px;
+  width:380px;
   background:var(--panel);
-  padding:10px;
-  overflow:auto;
+  padding:12px;
+  overflow-y:auto;
+  transition:0.3s;
+  border-right:1px solid #e5e7eb;
+}
+
+.sidebar.hidden{
+  transform:translateX(-100%);
+  position:absolute;
+  z-index:2500;
 }
 
 #globe{
   flex:1;
+  height:100%;
 }
 
+/* INPUTS */
 input,textarea{
   width:100%;
   margin-top:6px;
   padding:10px;
   border-radius:10px;
-  border:none;
-  background:#0a1022;
-  color:white;
+  border:1px solid #e5e7eb;
+  background:white;
 }
 
 button.action{
@@ -92,52 +114,55 @@ button.action{
   border:none;
   border-radius:10px;
   background:linear-gradient(135deg,var(--accent),var(--accent2));
+  color:white;
   font-weight:bold;
   cursor:pointer;
 }
 
 .card{
-  background:#0c142b;
+  background:var(--soft);
   padding:10px;
   margin-top:10px;
   border-radius:10px;
 }
 
+.flag{
+  width:70px;
+  border-radius:8px;
+  margin:6px;
+  box-shadow:0 4px 12px rgba(0,0,0,0.15);
+}
+
 .badge{
   display:inline-block;
-  padding:4px 8px;
-  background:#1b2a52;
-  border-radius:6px;
-  margin:2px;
+  padding:5px 10px;
+  background:#dbeafe;
+  border-radius:8px;
+  margin:3px;
   font-size:12px;
 }
 
-.flag{
-  width:40px;
-  border-radius:6px;
-  margin-right:6px;
-}
-
-.marker{
-  width:26px;
-  height:18px;
-  border-radius:4px;
-  border:2px solid white;
-  box-shadow:0 0 10px rgba(255,255,255,0.5);
-}
-
+/* MOBILE */
 @media(max-width:900px){
   .container{flex-direction:column}
-  .sidebar{width:100%;height:45vh}
-  #globe{height:55vh}
+  .sidebar{
+    width:100%;
+    height:45vh;
+  }
+  #globe{
+    height:55vh;
+  }
+  .burger{display:block}
+  .nav{display:none}
 }
 
-/* PANELS */
-.panel{
-  display:none;
-}
-.panel.active{
-  display:block;
+/* EXPORT AREA */
+#exportBox{
+  position:absolute;
+  left:-9999px;
+  width:1100px;
+  background:white;
+  padding:20px;
 }
 
 </style>
@@ -146,42 +171,38 @@ button.action{
 <body>
 
 <div class="topnav">
-  <div class="logo">🌍 LOGO</div>
-  <div class="nav">
-    <button onclick="setTab('map')">Map</button>
-    <button onclick="setTab('stats')">Stats</button>
-    <button onclick="exportView()">Export</button>
-    <button onclick="downloadData()">Backup</button>
-    <button onclick="uploadData()">Import</button>
+  <div class="logo">🌍 TRAVEL MAP</div>
+  <div class="burger" onclick="toggleMenu()">☰</div>
+  <div class="nav" id="nav">
+    <button onclick="setView('map')">Map</button>
+    <button onclick="setView('stats')">Stats</button>
+    <button onclick="exportFull()">Export</button>
   </div>
 </div>
 
 <div class="container">
 
-<div class="sidebar">
+<div class="sidebar" id="sidebar">
 
-  <div id="map" class="panel active">
+  <h2>🌍 My Travel Map</h2>
 
-    <h2>🌍 Travel ULTRA</h2>
+  <input id="search" placeholder="Land suchen..." oninput="filterCountries()" />
+  <div id="countryList"></div>
 
-    <input id="search" placeholder="Land suchen..." oninput="filterCountries()" />
-    <div id="countryList"></div>
+  <h3>Reise hinzufügen</h3>
+  <input id="city" placeholder="Stadt" />
+  <input id="date" type="date" />
+  <textarea id="note" placeholder="Notiz"></textarea>
+  <button class="action" onclick="addTrip()">Speichern</button>
 
-    <h3>Reise hinzufügen</h3>
-    <input id="city" placeholder="Stadt" />
-    <input id="date" type="date" />
-    <textarea id="note" placeholder="Notiz"></textarea>
-    <button class="action" onclick="addTrip()">Speichern</button>
+  <h3>Flaggen</h3>
+  <div id="flags"></div>
 
-    <h3>Reisen</h3>
-    <div id="list"></div>
+  <h3>Reisen</h3>
+  <div id="list"></div>
 
-  </div>
-
-  <div id="stats" class="panel">
-    <h2>📊 Statistik</h2>
-    <div id="statsBox"></div>
-  </div>
+  <h3>Statistik</h3>
+  <div id="stats"></div>
 
 </div>
 
@@ -198,14 +219,14 @@ let globe;
 
 function save(){localStorage.setItem("trips",JSON.stringify(trips));}
 
-// TABS
-function setTab(t){
-  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
-  document.getElementById(t).classList.add('active');
-  if(t==='stats')renderStats();
+function toggleMenu(){
+  sidebar.classList.toggle("hidden");
 }
 
-// GEO
+function setView(v){
+  alert("View: "+v);
+}
+
 fetch("https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson")
 .then(r=>r.json())
 .then(d=>{countries=d.features;init();renderCountries();});
@@ -215,66 +236,43 @@ function init(){
 globe = Globe()(document.getElementById('globe'))
 .globeImageUrl('https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg')
 .bumpImageUrl('https://unpkg.com/three-globe/example/img/earth-topology.png')
-.backgroundColor('#050814')
+.backgroundColor('#f6f8fc')
 .polygonsData(countries)
-.polygonCapColor(()=>"rgba(76,201,240,0.15)")
-.polygonStrokeColor(()=>"#4cc9f0")
+.polygonCapColor(()=>"rgba(26,115,232,0.15)")
+.polygonStrokeColor(()=>"#1a73e8")
 .onPolygonClick(d=>{
   selectedCountry=d.properties.name;
-  addFlagMarker(d);
+  loadFlag(selectedCountry);
 });
 
-updateGlobe();
+updatePoints();
 }
 
-// FLAGS ON GLOBE
-function addFlagMarker(country){
-  fetch(`https://restcountries.com/v3.1/name/${country}`)
-  .then(r=>r.json())
-  .then(d=>{
-    let c=d[0];
-    let latlng=c.latlng || [0,0];
-
-    globe.htmlElementsData([...trips,{lat:latlng[0],lng:latlng[1],flag:c.flags?.png||''}])
-    .htmlElement(d=>{
-      let el=document.createElement('div');
-      el.innerHTML=`<img src='${d.flag}' class='marker'/>`;
-      return el;
-    });
-  });
+function updatePoints(){
+globe.pointsData(trips)
+.pointLat(d=>d.lat)
+.pointLng(d=>d.lng)
+.pointColor(()=>"#ef4444")
+.pointRadius(0.5)
+.pointAltitude(0.02)
+.pointLabel(d=>d.city);
 }
 
-// GEO CODING
 async function geo(city){
 let r=await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${city}`);
 let d=await r.json();
 return d[0]?{lat:+d[0].lat,lng:+d[0].lon}:{lat:0,lng:0};
 }
 
-function daysLeft(date){return Math.ceil((new Date(date)-new Date())/86400000)}
+function daysLeft(date){
+return Math.ceil((new Date(date)-new Date())/86400000);
+}
 
 async function addTrip(){
 if(!selectedCountry)return;
 let c=await geo(city.value+","+selectedCountry);
-trips.push({
-country:selectedCountry,
-city:city.value,
-date:date.value,
-note:note.value,
-lat:c.lat,
-lng:c.lng,
-days:daysLeft(date.value)
-});
-save();render();updateGlobe();renderStats();
-}
-
-function updateGlobe(){
-globe.pointsData(trips)
-.pointLat(d=>d.lat)
-.pointLng(d=>d.lng)
-.pointColor(()=>"#ff4d4d")
-.pointRadius(0.4)
-.pointAltitude(0.02);
+trips.push({country:selectedCountry,city:city.value,date:date.value,note:note.value,lat:c.lat,lng:c.lng,days:daysLeft(date.value)});
+save();render();updatePoints();renderStats();renderFlags();
 }
 
 function render(){
@@ -285,6 +283,14 @@ ${t.city}<br>
 📅 ${t.date} (${t.days} Tage)
 <br>${t.note}
 </div>`).join('');
+}
+
+function renderStats(){
+stats.innerHTML=`
+<div class='badge'>Länder: ${new Set(trips.map(t=>t.country)).size}</div>
+<div class='badge'>Städte: ${trips.length}</div>
+<div class='badge'>Letzte Reise: ${trips.at(-1)?.city||"-"}</div>
+`;
 }
 
 function renderCountries(){
@@ -300,46 +306,31 @@ countryList.innerHTML=countries.filter(c=>c.properties.name.toLowerCase().includ
 ).join('');
 }
 
-function selectCountry(c){selectedCountry=c;addFlagMarker(c);}
+function selectCountry(c){selectedCountry=c;loadFlag(c);}
 
-function renderStats(){
-statsBox.innerHTML=`
-<div class='badge'>Länder: ${new Set(trips.map(t=>t.country)).size}</div>
-<div class='badge'>Städte: ${trips.length}</div>
-<div class='badge'>Letzte Reise: ${trips.at(-1)?.city||"-"}</div>
-<div class='badge'>Noch offen: ${trips.filter(t=>t.days>0).length}</div>
-`;
+function loadFlag(c){
+fetch(`https://restcountries.com/v3.1/name/${c}`)
+.then(r=>r.json())
+.then(d=>{
+let f=d[0]?.flags?.png;
+if(f){
+flags.innerHTML=`<img src='${f}' class='flag'/>`;
 }
-
-// EXPORT IMAGE
-function exportView(){
-html2canvas(document.body).then(c=>{
-let a=document.createElement('a');
-a.download='travel.png';
-a.href=c.toDataURL();
-a.click();
 });
 }
 
-// BACKUP
-function downloadData(){
-let blob=new Blob([JSON.stringify(trips)],{type:'application/json'});
-let a=document.createElement('a');
-a.href=URL.createObjectURL(blob);
-a.download='backup.json';
-a.click();
+function renderFlags(){
+flags.innerHTML="";
+trips.forEach(t=>loadFlag(t.country));
 }
 
-function uploadData(){
-let i=document.createElement('input');
-i.type='file';
-i.onchange=e=>{
-let f=e.target.files[0];
-let r=new FileReader();
-r.onload=()=>{trips=JSON.parse(r.result);save();render();updateGlobe();renderStats();};
-r.readAsText(f);
-};
-i.click();
+function exportFull(){
+html2canvas(document.body).then(c=>{
+let a=document.createElement('a');
+a.download="travel-map.png";
+a.href=c.toDataURL();
+a.click();
+});
 }
 
 renderStats();
