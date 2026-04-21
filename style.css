@@ -1,8 +1,7 @@
 body {
   margin: 0;
   font-family: Arial;
-  background: #eaf3ff; /* 🌍 heller Look */
-  color: black;
+  background: #eaf3ff;
 }
 
 .app {
@@ -10,17 +9,12 @@ body {
   height: 100vh;
 }
 
-/* SIDEBAR */
 .sidebar {
   width: 340px;
   background: white;
   padding: 15px;
   overflow-y: auto;
   border-right: 1px solid #ddd;
-}
-
-h1 {
-  font-size: 20px;
 }
 
 input, select {
@@ -36,65 +30,23 @@ button {
   padding: 10px;
   background: #2563eb;
   border: none;
-  border-radius: 10px;
   color: white;
-  margin-top: 10px;
-}
-
-/* CHARTS */
-canvas {
-  margin-top: 15px;
-  background: white;
   border-radius: 10px;
+  cursor: pointer;
 }
 
-/* GLOBE */
-#globeViz {
-  flex: 1;
-  background: #dff1ff;
-}
-
-/* 🍔 MENU BUTTON */
-.menu-btn {
-  display: none;
+.login-btn {
   position: absolute;
   top: 10px;
-  left: 10px;
-  z-index: 9999;
-  font-size: 22px;
-  background: white;
-  border: none;
-  padding: 10px;
-  border-radius: 10px;
+  right: 10px;
+  z-index: 999;
+  background: #111;
 }
 
-/* 📱 MOBILE FIX */
-@media (max-width: 768px) {
+#globeViz {
+  flex: 1;
+}
 
-  .app {
-    flex-direction: column;
-  }
-
-  #globeViz {
-    height: 100vh;
-  }
-
-  .sidebar {
-    position: fixed;
-    left: -100%;
-    top: 0;
-    height: 100%;
-    width: 85%;
-    transition: 0.3s;
-    z-index: 999;
-    box-shadow: 5px 0 20px rgba(0,0,0,0.2);
-  }
-
-  .sidebar.active {
-    left: 0;
-  }
-
-  .menu-btn {
-    display: block;
-  }
+canvas {
+  margin-top: 10px;
 }
