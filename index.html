@@ -3,9 +3,10 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>My World Wide Trip – FINAL</title>
+<title>My World Wide Trip – ULTRA</title>
 
 <script src="https://unpkg.com/globe.gl"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
 <style>
 :root{
@@ -20,7 +21,7 @@
 
 body{
   margin:0;
-  font-family:Arial, sans-serif;
+  font-family:Arial;
   background:var(--bg);
   color:var(--text);
   overflow:hidden;
@@ -31,25 +32,24 @@ body{
   position:fixed;
   top:0;left:0;right:0;
   height:60px;
+  background:#0b1226;
   display:flex;
   align-items:center;
   justify-content:space-between;
-  background:#0b1226;
-  padding:0 12px;
-  z-index:1000;
+  padding:0 10px;
+  z-index:2000;
   border-bottom:1px solid #1f2a4a;
 }
 
 .logo{
-  font-weight:bold;
   background:white;
   color:black;
   padding:6px 10px;
-  border-radius:10px;
+  border-radius:8px;
+  font-weight:bold;
 }
 
 .nav button{
-  margin:0 4px;
   background:transparent;
   border:1px solid #2b3b66;
   color:white;
@@ -67,7 +67,7 @@ body{
 .sidebar{
   width:360px;
   background:var(--panel);
-  padding:12px;
+  padding:10px;
   overflow:auto;
 }
 
@@ -77,7 +77,7 @@ body{
 
 input,textarea{
   width:100%;
-  margin-top:8px;
+  margin-top:6px;
   padding:10px;
   border-radius:10px;
   border:none;
@@ -92,7 +92,6 @@ button.action{
   border:none;
   border-radius:10px;
   background:linear-gradient(135deg,var(--accent),var(--accent2));
-  color:black;
   font-weight:bold;
   cursor:pointer;
 }
@@ -100,8 +99,8 @@ button.action{
 .card{
   background:#0c142b;
   padding:10px;
-  border-radius:10px;
   margin-top:10px;
+  border-radius:10px;
 }
 
 .badge{
@@ -113,27 +112,32 @@ button.action{
   font-size:12px;
 }
 
-#modal{
-  position:fixed;
-  inset:0;
-  background:rgba(0,0,0,0.6);
-  display:none;
-  align-items:center;
-  justify-content:center;
-  z-index:2000;
+.flag{
+  width:40px;
+  border-radius:6px;
+  margin-right:6px;
 }
 
-.modalBox{
-  background:#111a33;
-  padding:20px;
-  border-radius:12px;
-  width:300px;
+.marker{
+  width:26px;
+  height:18px;
+  border-radius:4px;
+  border:2px solid white;
+  box-shadow:0 0 10px rgba(255,255,255,0.5);
 }
 
 @media(max-width:900px){
   .container{flex-direction:column}
   .sidebar{width:100%;height:45vh}
   #globe{height:55vh}
+}
+
+/* PANELS */
+.panel{
+  display:none;
+}
+.panel.active{
+  display:block;
 }
 
 </style>
@@ -144,9 +148,11 @@ button.action{
 <div class="topnav">
   <div class="logo">🌍 LOGO</div>
   <div class="nav">
-    <button onclick="view('map')">Map</button>
-    <button onclick="view('stats')">Stats</button>
-    <button onclick="view('bucket')">Bucket</button>
+    <button onclick="setTab('map')">Map</button>
+    <button onclick="setTab('stats')">Stats</button>
+    <button onclick="exportView()">Export</button>
+    <button onclick="downloadData()">Backup</button>
+    <button onclick="uploadData()">Import</button>
   </div>
 </div>
 
@@ -154,25 +160,28 @@ button.action{
 
 <div class="sidebar">
 
-  <h2>My World Wide Trip</h2>
+  <div id="map" class="panel active">
 
-  <input id="search" placeholder="Land suchen..." oninput="filterCountries()" />
-  <div id="countryList"></div>
+    <h2>🌍 Travel ULTRA</h2>
 
-  <h3>Reise</h3>
-  <input id="city" placeholder="Stadt" />
-  <input id="date" type="date" />
-  <textarea id="note" placeholder="Notiz"></textarea>
-  <button class="action" onclick="addTrip()">Speichern</button>
+    <input id="search" placeholder="Land suchen..." oninput="filterCountries()" />
+    <div id="countryList"></div>
 
-  <h3>Statistik</h3>
-  <div id="stats"></div>
+    <h3>Reise hinzufügen</h3>
+    <input id="city" placeholder="Stadt" />
+    <input id="date" type="date" />
+    <textarea id="note" placeholder="Notiz"></textarea>
+    <button class="action" onclick="addTrip()">Speichern</button>
 
-  <h3>Reisen</h3>
-  <div id="list"></div>
+    <h3>Reisen</h3>
+    <div id="list"></div>
 
-  <h3>Flaggen</h3>
-  <div id="flags"></div>
+  </div>
+
+  <div id="stats" class="panel">
+    <h2>📊 Statistik</h2>
+    <div id="statsBox"></div>
+  </div>
 
 </div>
 
@@ -180,35 +189,30 @@ button.action{
 
 </div>
 
-<div id="modal">
-  <div class="modalBox">
-    <h3 id="modalText"></h3>
-    <button onclick="closeModal()">OK</button>
-  </div>
-</div>
-
 <script>
 
-let trips=JSON.parse(localStorage.getItem("trips")||"[]");
+let trips = JSON.parse(localStorage.getItem("trips")||"[]");
 let countries=[];
 let selectedCountry=null;
+let globe;
 
 function save(){localStorage.setItem("trips",JSON.stringify(trips));}
 
-function modal(t){modal.style.display="flex";modalText.innerText=t;}
-function closeModal(){modal.style.display="none";}
+// TABS
+function setTab(t){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById(t).classList.add('active');
+  if(t==='stats')renderStats();
+}
 
-function view(v){modal("Navigation: "+v)}
-
-// WORLD DATA
+// GEO
 fetch("https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson")
 .then(r=>r.json())
 .then(d=>{countries=d.features;init();renderCountries();});
 
-let globe;
-
 function init(){
-globe=Globe()(document.getElementById('globe'))
+
+globe = Globe()(document.getElementById('globe'))
 .globeImageUrl('https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg')
 .bumpImageUrl('https://unpkg.com/three-globe/example/img/earth-topology.png')
 .backgroundColor('#050814')
@@ -216,65 +220,132 @@ globe=Globe()(document.getElementById('globe'))
 .polygonCapColor(()=>"rgba(76,201,240,0.15)")
 .polygonStrokeColor(()=>"#4cc9f0")
 .onPolygonClick(d=>{
-selectedCountry=d.properties.name;
-modal("Land: "+selectedCountry);
-loadFlag(selectedCountry);
+  selectedCountry=d.properties.name;
+  addFlagMarker(d);
 });
-updatePoints();
+
+updateGlobe();
 }
 
-function updatePoints(){
-globe.pointsData(trips)
-.pointLat(d=>d.lat)
-.pointLng(d=>d.lng)
-.pointColor(()=>"#ff3b3b")
-.pointRadius(0.35)
-.pointLabel(d=>d.city);
+// FLAGS ON GLOBE
+function addFlagMarker(country){
+  fetch(`https://restcountries.com/v3.1/name/${country}`)
+  .then(r=>r.json())
+  .then(d=>{
+    let c=d[0];
+    let latlng=c.latlng || [0,0];
+
+    globe.htmlElementsData([...trips,{lat:latlng[0],lng:latlng[1],flag:c.flags?.png||''}])
+    .htmlElement(d=>{
+      let el=document.createElement('div');
+      el.innerHTML=`<img src='${d.flag}' class='marker'/>`;
+      return el;
+    });
+  });
 }
 
-async function geocode(city){
+// GEO CODING
+async function geo(city){
 let r=await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${city}`);
 let d=await r.json();
 return d[0]?{lat:+d[0].lat,lng:+d[0].lon}:{lat:0,lng:0};
 }
 
-async function addTrip(){
-if(!selectedCountry)return modal("Bitte Land wählen");
-let c=await geocode(city.value+","+selectedCountry);
-trips.push({country:selectedCountry,city:city.value,date:date.value,note:note.value,lat:c.lat,lng:c.lng});
-save();render();updatePoints();stats();}
+function daysLeft(date){return Math.ceil((new Date(date)-new Date())/86400000)}
 
-function render(){
-list.innerHTML=trips.map(t=>`<div class='card'><b>${t.country}</b><br>${t.city}<br>${t.date}<br>${t.note}</div>`).join('');
+async function addTrip(){
+if(!selectedCountry)return;
+let c=await geo(city.value+","+selectedCountry);
+trips.push({
+country:selectedCountry,
+city:city.value,
+date:date.value,
+note:note.value,
+lat:c.lat,
+lng:c.lng,
+days:daysLeft(date.value)
+});
+save();render();updateGlobe();renderStats();
 }
 
-function stats(){
-stats.innerHTML=`<div class='badge'>Länder: ${new Set(trips.map(t=>t.country)).size}</div><div class='badge'>Städte: ${trips.length}</div>`;
+function updateGlobe(){
+globe.pointsData(trips)
+.pointLat(d=>d.lat)
+.pointLng(d=>d.lng)
+.pointColor(()=>"#ff4d4d")
+.pointRadius(0.4)
+.pointAltitude(0.02);
+}
+
+function render(){
+list.innerHTML=trips.map(t=>`
+<div class='card'>
+<b>${t.country}</b><br>
+${t.city}<br>
+📅 ${t.date} (${t.days} Tage)
+<br>${t.note}
+</div>`).join('');
 }
 
 function renderCountries(){
-countryList.innerHTML=countries.slice(0,20).map(c=>`<div onclick="selectCountry('${c.properties.name}')">🌍 ${c.properties.name}</div>`).join('');
+countryList.innerHTML=countries.slice(0,25).map(c=>
+`<div onclick="selectCountry('${c.properties.name}')">🌍 ${c.properties.name}</div>`
+).join('');
 }
 
 function filterCountries(){
 let v=search.value.toLowerCase();
-countryList.innerHTML=countries.filter(c=>c.properties.name.toLowerCase().includes(v)).slice(0,20).map(c=>`<div onclick="selectCountry('${c.properties.name}')">🌍 ${c.properties.name}</div>`).join('');
+countryList.innerHTML=countries.filter(c=>c.properties.name.toLowerCase().includes(v)).slice(0,25).map(c=>
+`<div onclick="selectCountry('${c.properties.name}')">🌍 ${c.properties.name}</div>`
+).join('');
 }
 
-function selectCountry(c){selectedCountry=c;modal("Ausgewählt: "+c);loadFlag(c);}
+function selectCountry(c){selectedCountry=c;addFlagMarker(c);}
 
-async function loadFlag(country){
-try{
-let r=await fetch(`https://restcountries.com/v3.1/name/${country}`);
-let d=await r.json();
-let f=d[0]?.flags?.png;
-if(f){flags.innerHTML=`<img src='${f}' width='100'/>`}
-}catch(e){}
+function renderStats(){
+statsBox.innerHTML=`
+<div class='badge'>Länder: ${new Set(trips.map(t=>t.country)).size}</div>
+<div class='badge'>Städte: ${trips.length}</div>
+<div class='badge'>Letzte Reise: ${trips.at(-1)?.city||"-"}</div>
+<div class='badge'>Noch offen: ${trips.filter(t=>t.days>0).length}</div>
+`;
 }
 
-render();stats();
+// EXPORT IMAGE
+function exportView(){
+html2canvas(document.body).then(c=>{
+let a=document.createElement('a');
+a.download='travel.png';
+a.href=c.toDataURL();
+a.click();
+});
+}
+
+// BACKUP
+function downloadData(){
+let blob=new Blob([JSON.stringify(trips)],{type:'application/json'});
+let a=document.createElement('a');
+a.href=URL.createObjectURL(blob);
+a.download='backup.json';
+a.click();
+}
+
+function uploadData(){
+let i=document.createElement('input');
+i.type='file';
+i.onchange=e=>{
+let f=e.target.files[0];
+let r=new FileReader();
+r.onload=()=>{trips=JSON.parse(r.result);save();render();updateGlobe();renderStats();};
+r.readAsText(f);
+};
+i.click();
+}
+
+renderStats();
 
 </script>
 
 </body>
 </html>
+
