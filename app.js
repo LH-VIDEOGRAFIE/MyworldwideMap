@@ -2,66 +2,100 @@
 let travels = JSON.parse(localStorage.getItem("travels")) || [];
 let visitedCountries = JSON.parse(localStorage.getItem("countries")) || [];
 
-// 🌍 GLOBE (STABIL)
+// 🌍 GLOBE (OPTIMIERT + ANIMIERT)
 const globe = Globe()
 (document.getElementById("globeViz"))
   .globeImageUrl("https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg")
   .bumpImageUrl("https://unpkg.com/three-globe/example/img/earth-topology.png")
-  .backgroundColor("#eaf3ff")
+  .backgroundColor("#eaf3ff");
 
-  .pointsData(travels)
-  .pointLat(d => d.lat)
-  .pointLng(d => d.lng)
-  .pointColor(() => "red")
-  .pointRadius(0.35);
+// 🌍 ZOOM FUNCTION
+function zoomTo(lat, lng) {
+  globe.pointOfView({ lat, lng, altitude: 1.8 }, 1000);
+}
 
-// 🌍 LÄNDER (ECHTE FLÄCHEN + KLICKBAR)
+// 📍 PINS (STÄDTE – VISUELL VERBESSERT)
+function updateGlobe() {
+
+  globe.pointsData(travels.filter(t => t.lat && t.lng))
+    .pointLat(d => d.lat)
+    .pointLng(d => d.lng)
+
+    // ✨ BESSERER MARKER LOOK
+    .pointColor(() => "rgba(255,255,255,0.9)")
+    .pointAltitude(0.02)
+    .pointRadius(0.5);
+}
+
+// 🌍 LÄNDER (PRO VISUALS)
 fetch("https://raw.githubusercontent.com/mledoze/countries/master/countries.geojson")
-  .then(res => res.json())
-  .then(data => {
+.then(res => res.json())
+.then(data => {
 
-    globe.polygonsData(data.features)
+  globe.polygonsData(data.features)
 
-      .polygonCapColor(d => {
-        const name = d.properties.name;
-        return visitedCountries.includes(name)
-          ? "rgba(0,200,0,0.5)"
-          : "rgba(255,255,255,0.05)";
-      })
+    // ✨ smoother look
+    .polygonSideColor(() => "rgba(0,0,0,0.02)")
+    .polygonStrokeColor(() => "rgba(0,0,0,0.4)")
 
-      .polygonSideColor(() => "rgba(0,0,0,0.02)")
-      .polygonStrokeColor(() => "#666")
+    // 🌈 FARBLOGIK UPGRADED
+    .polygonCapColor(d => {
 
-      // 🟢 LAND KLICK (CORRECT LOGIC)
-      .onPolygonClick(d => {
-        const country = d.properties.name;
+      const name = d.properties.name;
+      const entry = travels.find(t => t.country === name);
 
-        if (!visitedCountries.includes(country)) {
-          visitedCountries.push(country);
+      if (!entry) return "rgba(255,255,255,0.03)";
 
-          // ❗ WICHTIG: KEIN FAKE MARKER MEHR
-          travels.push({
-            country,
-            city: null,
-            lat: null,
-            lng: null,
-            isCountry: true
-          });
+      // stärker sichtbare Farbe
+      return `rgba(0,140,255,0.55)`;
+    })
 
-          save();
-          update();
-        }
-      });
-  });
+    // 🖱 HOVER EFFECT
+    .onPolygonHover(d => {
+      document.body.style.cursor = d ? "pointer" : "default";
+    })
 
-// 📍 STADT HINZUFÜGEN (ECHTE KOORDINATEN)
+    // 🌍 CLICK = ZOOM + SAVE
+    .onPolygonClick(d => {
+
+      const country = d.properties.name;
+
+      if (!visitedCountries.includes(country)) {
+
+        visitedCountries.push(country);
+
+        travels.push({
+          country,
+          city: null,
+          lat: null,
+          lng: null,
+          rating: 5
+        });
+
+        save();
+        update();
+      }
+
+      // ✨ ZOOM (MIT GEO CENTER)
+      const coords = d.properties.latlng;
+
+      if (coords) {
+        zoomTo(coords[0], coords[1]);
+      }
+    });
+});
+
+// 🍔 MENU
+window.toggleMenu = function () {
+  document.getElementById("sidebar").classList.toggle("open");
+};
+
+// ➕ ADD TRAVEL
 window.addTravel = async function () {
 
   const country = document.getElementById("countryInput").value;
   const city = document.getElementById("cityInput").value;
-  const rating = document.getElementById("rating").value;
-
-  if (!country && !city) return alert("Bitte eingeben");
+  const rating = Number(document.getElementById("rating").value);
 
   let lat = null;
   let lng = null;
@@ -72,25 +106,45 @@ window.addTravel = async function () {
     );
 
     const data = await res.json();
-    if (!data.length) return alert("Stadt nicht gefunden");
+    if (!data.length) return alert("Nicht gefunden");
 
-    lat = parseFloat(data[0].lat);
-    lng = parseFloat(data[0].lon);
+    lat = +data[0].lat;
+    lng = +data[0].lon;
+
+    // ✨ ZOOM AUF STADT
+    zoomTo(lat, lng);
   }
 
   if (country && !visitedCountries.includes(country)) {
     visitedCountries.push(country);
   }
 
-  travels.push({
-    country: country || city,
-    city,
-    lat,
-    lng,
-    rating,
-    isCountry: false
-  });
+  if (city) {
+    travels.push({
+      country,
+      city,
+      name: city,
+      lat,
+      lng,
+      rating
+    });
+  }
 
+  save();
+  update();
+};
+
+// 🗑 DELETE COUNTRY
+window.removeCountry = function (c) {
+  visitedCountries = visitedCountries.filter(x => x !== c);
+  travels = travels.filter(t => t.country !== c);
+  save();
+  update();
+};
+
+// 🗑 DELETE CITY
+window.removeCity = function (name) {
+  travels = travels.filter(t => t.city !== name);
   save();
   update();
 };
@@ -101,94 +155,58 @@ function save() {
   localStorage.setItem("countries", JSON.stringify(visitedCountries));
 }
 
-// 📊 UPDATE
+// 📊 UPDATE SYSTEM
 function update() {
 
-  // ❗ FILTER NUR ECHTE PUNKTE
-  globe.pointsData(travels.filter(t => t.lat && t.lng));
+  updateGlobe();
 
   document.getElementById("countryCount").innerText =
-    `Länder: ${visitedCountries.length} / 195`;
+    `Länder: ${visitedCountries.length}`;
 
   document.getElementById("cityCount").innerText =
     `Städte: ${travels.filter(t => t.city).length}`;
 
-  renderList();
-  updateCharts();
+  render();
+  renderRatings();
 }
 
-// 🗂 LISTE + DELETE + RESTORE
-function renderList() {
+// 🧾 LISTS
+function render() {
 
-  const el = document.getElementById("countryList");
-  el.innerHTML = "<h3>🌍 Länder</h3>";
+  const c = document.getElementById("countryList");
+  const t = document.getElementById("cityList");
 
-  visitedCountries.forEach((c, i) => {
+  c.innerHTML = "<h3>🌍 Länder</h3>";
+  t.innerHTML = "<h3>📍 Städte</h3>";
 
-    const div = document.createElement("div");
-    div.style.display = "flex";
-    div.style.justifyContent = "space-between";
+  visitedCountries.forEach(x => {
+    c.innerHTML += `<div>${x} <button onclick="removeCountry('${x}')">❌</button></div>`;
+  });
 
-    div.innerHTML = `
-      <span>${c}</span>
-      <button style="width:auto" onclick="removeCountry(${i})">❌</button>
-    `;
-
-    el.appendChild(div);
+  travels.forEach(x => {
+    if (x.city)
+      t.innerHTML += `<div>${x.city} <button onclick="removeCity('${x.city}')">❌</button></div>`;
   });
 }
 
-// 🗑 DELETE COUNTRY (FIXED)
-window.removeCountry = function (i) {
+// ⭐ RATING STATS
+function renderRatings() {
 
-  const country = visitedCountries[i];
+  const stats = {1:0,2:0,3:0,4:0,5:0};
 
-  visitedCountries.splice(i, 1);
-
-  travels = travels.filter(t => t.country !== country);
-
-  save();
-  update();
-};
-
-// 📊 CHARTS
-let pie, bar;
-
-function updateCharts() {
-
-  const ctx1 = document.getElementById("pieChart");
-  const ctx2 = document.getElementById("barChart");
-
-  if (pie) pie.destroy();
-  if (bar) bar.destroy();
-
-  pie = new Chart(ctx1, {
-    type: "doughnut",
-    data: {
-      labels: ["Bereist", "Offen"],
-      datasets: [{
-        data: [visitedCountries.length, 195 - visitedCountries.length],
-        backgroundColor: ["#22c55e", "#ddd"]
-      }]
-    }
-  });
-
-  const map = {};
   travels.forEach(t => {
-    map[t.country] = (map[t.country] || 0) + 1;
+    if (t.rating) stats[t.rating]++;
   });
 
-  bar = new Chart(ctx2, {
-    type: "bar",
-    data: {
-      labels: Object.keys(map),
-      datasets: [{
-        data: Object.values(map),
-        backgroundColor: "#2563eb"
-      }]
-    }
+  const el = document.getElementById("ratingStats");
+
+  el.innerHTML = "<h3>⭐ Bewertungen</h3>";
+
+  Object.keys(stats).reverse().forEach(k => {
+    el.innerHTML += `<div>${"⭐".repeat(k)}: ${stats[k]}</div>`;
   });
 }
 
 // INIT
+updateGlobe();
 update();
