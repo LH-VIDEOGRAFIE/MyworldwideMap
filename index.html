@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>My World Wide Trip – FINAL UPGRADE</title>
+<title>My World Wide Trip – FINAL FIXED APP</title>
 
 <script src="https://unpkg.com/globe.gl"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -29,7 +29,6 @@ body{
   overflow:auto;
 }
 
-/* TOP BAR */
 .topnav{
   position:fixed;
   top:0;left:0;right:0;
@@ -51,11 +50,10 @@ body{
   font-weight:bold;
 }
 
-.burger{display:none;font-size:26px;cursor:pointer}
-
 .nav button{
-  background:transparent;
+  margin-left:6px;
   border:1px solid #d1d5db;
+  background:white;
   padding:6px 10px;
   border-radius:8px;
   cursor:pointer;
@@ -68,85 +66,56 @@ body{
 }
 
 .sidebar{
-  width:380px;
+  width:360px;
   background:var(--panel);
   padding:12px;
-  overflow-y:auto;
+  overflow:auto;
   border-right:1px solid #e5e7eb;
 }
 
-#globe{flex:1}
+#globe{
+  flex:1;
+}
+
+.view{display:none}
+.view.active{display:block}
 
 input,textarea{
-  width:100%;
-  margin-top:6px;
-  padding:10px;
-  border-radius:10px;
-  border:1px solid #e5e7eb;
+  width:100%;padding:10px;margin-top:6px;border-radius:10px;border:1px solid #e5e7eb;
 }
 
 button.action{
-  width:100%;
-  margin-top:8px;
-  padding:10px;
-  border:none;
-  border-radius:10px;
+  width:100%;margin-top:8px;padding:10px;border:none;border-radius:10px;
   background:linear-gradient(135deg,var(--accent),var(--accent2));
-  color:white;
-  font-weight:bold;
-  cursor:pointer;
+  color:white;font-weight:bold;
 }
 
-.card{
-  background:var(--soft);
-  padding:10px;
-  margin-top:10px;
-  border-radius:10px;
-}
+.card{background:var(--soft);padding:10px;margin-top:10px;border-radius:10px}
 
-.flag{
-  width:70px;
-  margin:4px;
-  border-radius:10px;
-  animation:float 3s infinite ease-in-out;
-}
+.flag{width:70px;border-radius:8px;margin:4px;animation:float 3s infinite}
+@keyframes float{50%{transform:translateY(-5px)}}
 
-@keyframes float{
-  0%,100%{transform:translateY(0)}
-  50%{transform:translateY(-5px)}
-}
+.badge{background:#dbeafe;padding:6px 10px;border-radius:8px;margin:3px;display:inline-block;font-size:12px}
 
-.badge{
-  display:inline-block;
-  padding:6px 10px;
-  background:#dbeafe;
-  border-radius:8px;
-  margin:3px;
-  font-size:12px;
-}
+/* visited countries highlight */
+.visited{fill:rgba(37,99,235,0.35)!important}
 
 @media(max-width:900px){
   .container{flex-direction:column}
   .sidebar{width:100%;height:45vh}
-  #globe{height:55vh}
-  .burger{display:block}
-  .nav{display:none}
 }
-
-canvas{max-width:100%}
 
 </style>
 </head>
-
 <body>
 
 <div class="topnav">
-  <div class="logo">🌍 WORLD TRIP</div>
-  <div class="burger" onclick="toggle()">☰</div>
+  <div class="logo">🌍 TRAVEL OS</div>
   <div class="nav">
-    <button onclick="view('map')">Map</button>
-    <button onclick="view('stats')">Stats</button>
-    <button onclick="exportPoster()">Export Poster</button>
+    <button onclick="switchView('map')">Map</button>
+    <button onclick="switchView('planner')">Planung</button>
+    <button onclick="switchView('stats')">Statistik</button>
+    <button onclick="exportPoster()">Export</button>
   </div>
 </div>
 
@@ -154,24 +123,34 @@ canvas{max-width:100%}
 
 <div class="sidebar">
 
-<h2>Reise Planer</h2>
+<!-- MAP VIEW -->
+<div id="map" class="view active">
+  <h3>🌍 Weltkarte</h3>
+  <p>Klicke ein Land → wird als besucht markiert</p>
+</div>
 
-<input id="countryInput" placeholder="Land auswählen" />
-<input id="city" placeholder="Stadt" />
-<input id="date" type="date" />
-<textarea id="note" placeholder="Notizen / Diary"></textarea>
-<button class="action" onclick="addTrip()">Speichern</button>
+<!-- PLANNER -->
+<div id="planner" class="view">
+  <h3>✈️ Reise planen</h3>
+  <input id="countryInput" placeholder="Land" />
+  <input id="city" placeholder="Stadt" />
+  <input id="date" type="date" />
+  <textarea id="note" placeholder="Notizen"></textarea>
+  <button class="action" onclick="addTrip()">Speichern</button>
+</div>
+
+<!-- STATS -->
+<div id="statsView" class="view">
+  <h3>📊 Statistik</h3>
+  <div id="stats"></div>
+  <canvas id="chart"></canvas>
+</div>
 
 <h3>Reisen</h3>
 <div id="list"></div>
 
 <h3>Flaggen</h3>
 <div id="flags"></div>
-
-<h3>Statistik</h3>
-<div id="stats"></div>
-
-<canvas id="chart" height="180"></canvas>
 
 </div>
 
@@ -182,6 +161,7 @@ canvas{max-width:100%}
 <script>
 
 let trips=JSON.parse(localStorage.getItem("trips")||"[]");
+let visited=new Set(trips.map(t=>t.country));
 let globe;
 let countries=[];
 
@@ -192,21 +172,24 @@ fetch("https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/wor
 .then(d=>{countries=d.features;init();render();});
 
 function init(){
+
 globe=Globe()(document.getElementById('globe'))
 .globeImageUrl('https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg')
 .backgroundColor('#f4f7ff')
 .polygonsData(countries)
-.polygonCapColor(()=>"rgba(37,99,235,0.15)")
-.polygonStrokeColor(()=>"#2563eb");
-updatePoints();
+.polygonCapColor(d=>visited.has(d.properties.name)?'rgba(37,99,235,0.45)':'rgba(0,0,0,0.05)')
+.polygonStrokeColor(()=>"#2563eb")
+.onPolygonClick(d=>{
+  visited.add(d.properties.name);
+  render();
+  updateGlobe();
+});
+
+updateGlobe();
 }
 
-function updatePoints(){
-globe.pointsData(trips)
-.pointLat(d=>d.lat)
-.pointLng(d=>d.lng)
-.pointColor(()=>"#ef4444")
-.pointRadius(0.5);
+function updateGlobe(){
+globe.polygonsData(countries);
 }
 
 async function geo(city){
@@ -220,17 +203,13 @@ function daysLeft(date){return Math.ceil((new Date(date)-new Date())/86400000)}
 async function addTrip(){
 let c=await geo(city.value+","+countryInput.value);
 trips.push({country:countryInput.value,city:city.value,date:date.value,note:note.value,lat:c.lat,lng:c.lng,days:daysLeft(date.value)});
-save();render();updatePoints();stats();drawChart();renderFlags();
+visited.add(countryInput.value);
+save();render();stats();drawChart();renderFlags();updateGlobe();
 }
 
 function render(){
 list.innerHTML=trips.map(t=>`
-<div class='card'>
-<b>${t.country}</b><br>
-${t.city}<br>
-📅 ${t.date} (${t.days} Tage)
-<br>${t.note}
-</div>`).join('');
+<div class='card'><b>${t.country}</b><br>${t.city}<br>📅 ${t.date}</div>`).join('');
 }
 
 function renderFlags(){
@@ -240,45 +219,41 @@ fetch(`https://restcountries.com/v3.1/name/${t.country}`)
 .then(r=>r.json())
 .then(d=>{
 let f=d[0]?.flags?.png;
-if(f){
-let img=document.createElement('img');
-img.src=f;
-img.className='flag';
-flags.appendChild(img);
-}
+if(f){let img=document.createElement('img');img.src=f;img.className='flag';flags.appendChild(img);}
 });
 });
 }
 
 function stats(){
-let countries=new Set(trips.map(t=>t.country)).size;
+let c=visited.size;
 stats.innerHTML=`
-<div class='badge'>🌍 Länder: ${countries}</div>
-<div class='badge'>🏙️ Städte: ${trips.length}</div>
-<div class='badge'>📊 Welt: ${((countries/195)*100).toFixed(1)}%</div>
-<div class='badge'>🧭 Letzte: ${trips.at(-1)?.city||"-"}</div>
-`;
+<div class='badge'>Länder: ${c}</div>
+<div class='badge'>Städte: ${trips.length}</div>
+<div class='badge'>Welt: ${((c/195)*100).toFixed(1)}%</div>`;
 }
 
 function drawChart(){
-let ctx=document.getElementById('chart');
-new Chart(ctx,{type:'pie',data:{labels:['Reisen'],datasets:[{data:[trips.length],backgroundColor:['#2563eb']}]}});
-}
-
-function exportPoster(){
-html2canvas(document.body).then(canvas=>{
-let a=document.createElement('a');
-a.download="world-poster.png";
-a.href=canvas.toDataURL();
-a.click();
+new Chart(document.getElementById('chart'),{
+type:'doughnut',
+data:{labels:['Besucht','Rest'],datasets:[{data:[visited.size,195-visited.size],backgroundColor:['#2563eb','#e5e7eb']}]}
 });
 }
 
-function render(){renderFlags();stats();drawChart();}
+function switchView(v){
+document.querySelectorAll('.view').forEach(x=>x.classList.remove('active'));
+if(v==='map')map.classList.add('active');
+if(v==='planner')planner.classList.add('active');
+if(v==='stats')statsView.classList.add('active');
+}
 
-function view(v){alert(v)}
-
-function toggle(){document.querySelector('.sidebar').classList.toggle('hidden')}
+function exportPoster(){
+html2canvas(document.body).then(c=>{
+let a=document.createElement('a');
+a.download="travel-poster.png";
+a.href=c.toDataURL();
+a.click();
+});
+}
 
 </script>
 
