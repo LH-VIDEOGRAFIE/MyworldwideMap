@@ -1,166 +1,164 @@
-let travels = JSON.parse(localStorage.getItem("travels")) || [];
-let visitedCountries = JSON.parse(localStorage.getItem("countries")) || [];
 
-// 🌍 REALISTIC EARTH
+// -------------------------
+// 🔥 FIREBASE INIT
+// -------------------------
+const firebaseConfig = {
+  apiKey: "DEIN_KEY",
+  authDomain: "DEIN_PROJECT.firebaseapp.com",
+  projectId: "DEIN_PROJECT"
+};
+
+firebase.initializeApp(firebaseConfig);
+
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+let user = null;
+let travels = [];
+
+// -------------------------
+// 🔐 LOGIN
+// -------------------------
+window.login = function () {
+  const provider = new firebase.auth.GoogleAuthProvider();
+
+  auth.signInWithPopup(provider).then(res => {
+    user = res.user;
+
+    document.getElementById("userInfo").innerHTML =
+      "👤 " + user.displayName;
+
+    loadData();
+  });
+};
+
+// -------------------------
+// 🌍 GLOBE
+// -------------------------
 const globe = Globe()
 (document.getElementById("globeViz"))
   .globeImageUrl("https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg")
-  .bumpImageUrl("https://unpkg.com/three-globe/example/img/earth-topology.png")
-  .backgroundColor("#dff1ff")
-
-  .pointsData(travels)
-  .pointLat(d => d.lat)
-  .pointLng(d => d.lng)
-  .pointColor(() => "red")
+  .backgroundColor("#eaf3ff")
   .pointRadius(0.35)
-  .pointAltitude(0.02);
+  .pointColor(() => "red")
+  .pointsData([]);
 
-// 🌍 COUNTRIES (100% GEO ACCURATE)
-fetch("https://raw.githubusercontent.com/mledoze/countries/master/countries.geojson")
-  .then(res => res.json())
-  .then(data => {
-
-    globe.polygonsData(data.features)
-
-      .polygonCapColor(d => {
-        const name = d.properties.name;
-        return visitedCountries.includes(name)
-          ? "rgba(0,200,0,0.5)"
-          : "rgba(255,255,255,0.03)";
-      })
-
-      .polygonSideColor(() => "rgba(0,0,0,0.02)")
-      .polygonStrokeColor(() => "#666")
-
-      // 🟢 HOVER
-      .onPolygonHover(d => {
-        document.body.style.cursor = d ? "pointer" : "default";
-      })
-
-      // 📍 CLICK = EXACT COUNTRY
-      .onPolygonClick(d => {
-
-        const country = d.properties.name;
-
-        if (!visitedCountries.includes(country)) {
-          visitedCountries.push(country);
-
-          travels.push({
-            country,
-            city: "",
-            lat: d.properties.lat || 0,
-            lng: d.properties.lng || 0,
-            rating: 5
-          });
-
-          save();
-          update();
-        }
-      });
-  });
-
-// 📍 CITY SEARCH (REAL GEOLOCATION FIX)
+// -------------------------
+// ➕ ADD TRAVEL
+// -------------------------
 window.addTravel = async function () {
+
+  if (!user) return alert("Login nötig");
 
   const country = document.getElementById("countryInput").value;
   const city = document.getElementById("cityInput").value;
+  const photo = document.getElementById("photoInput").value;
   const rating = document.getElementById("rating").value;
 
-  if (!country && !city) return alert("Bitte Land oder Stadt eingeben");
+  const geo = await fetch(
+    `https://nominatim.openstreetmap.org/search?format=json&q=${city || country}`
+  );
 
-  let lat = 0;
-  let lng = 0;
-  let display = city || country;
+  const data = await geo.json();
+  if (!data.length) return alert("Ort nicht gefunden");
 
-  // 🌍 REAL GEO API
-  if (city) {
-    const res = await fetch(
-      `https://nominatim.openstreetmap.org/search?format=json&q=${city}`
-    );
-
-    const data = await res.json();
-
-    if (data.length > 0) {
-      lat = parseFloat(data[0].lat);
-      lng = parseFloat(data[0].lon);
-      display = data[0].display_name;
-    }
-  }
-
-  if (country && !visitedCountries.includes(country)) {
-    visitedCountries.push(country);
-  }
-
-  travels.push({
-    country: country || display,
+  const travel = {
+    userId: user.uid,
+    country,
     city,
-    lat,
-    lng,
-    rating
-  });
+    photo,
+    rating,
+    lat: parseFloat(data[0].lat),
+    lng: parseFloat(data[0].lon),
+    created: Date.now()
+  };
 
-  save();
-  update();
+  await db.collection("travels").add(travel);
+
+  loadData();
 };
 
-// 💾 SAVE
-function save() {
-  localStorage.setItem("travels", JSON.stringify(travels));
-  localStorage.setItem("countries", JSON.stringify(visitedCountries));
-}
+// -------------------------
+// ☁️ LOAD CLOUD DATA
+// -------------------------
+async function loadData() {
 
-// 📊 UPDATE
-function update() {
+  if (!user) return;
+
+  const snap = await db.collection("travels")
+    .where("userId", "==", user.uid)
+    .get();
+
+  travels = snap.docs.map(d => d.data());
 
   globe.pointsData(travels);
 
+  updateStats();
+  renderTimeline();
+  renderLeaderboard();
+}
+
+// -------------------------
+// 📊 STATS
+// -------------------------
+function updateStats() {
+
+  const countries = [...new Set(travels.map(t => t.country))];
+
   document.getElementById("countryCount").innerText =
-    `Länder: ${visitedCountries.length} / 195`;
+    `Länder: ${countries.length} / 195`;
 
   document.getElementById("cityCount").innerText =
     `Städte: ${travels.filter(t => t.city).length}`;
-
-  updateCharts();
 }
 
-// 📊 CHARTS
-let pie, bar;
+// -------------------------
+// 🧭 TIMELINE
+// -------------------------
+function renderTimeline() {
 
-function updateCharts() {
+  const el = document.getElementById("timeline");
+  el.innerHTML = "<h3>🧭 Timeline</h3>";
 
-  const ctx1 = document.getElementById("pieChart");
-  const ctx2 = document.getElementById("barChart");
+  travels
+    .sort((a, b) => b.created - a.created)
+    .forEach(t => {
 
-  if (pie) pie.destroy();
-  if (bar) bar.destroy();
+      const div = document.createElement("div");
+      div.innerHTML = `
+        <b>${t.city || t.country}</b><br/>
+        ⭐ ${t.rating}
+        ${t.photo ? `<img src="${t.photo}" width="100"/>` : ""}
+        <hr/>
+      `;
 
-  pie = new Chart(ctx1, {
-    type: "doughnut",
-    data: {
-      labels: ["Bereist", "Offen"],
-      datasets: [{
-        data: [visitedCountries.length, 195 - visitedCountries.length],
-        backgroundColor: ["#16a34a", "#ddd"]
-      }]
-    }
-  });
-
-  const map = {};
-  travels.forEach(t => {
-    map[t.country] = (map[t.country] || 0) + 1;
-  });
-
-  bar = new Chart(ctx2, {
-    type: "bar",
-    data: {
-      labels: Object.keys(map),
-      datasets: [{
-        data: Object.values(map),
-        backgroundColor: "#2563eb"
-      }]
-    }
-  });
+      el.appendChild(div);
+    });
 }
 
-// INIT
-update();
+// -------------------------
+// 🏆 LEADERBOARD (SOCIAL LAYER)
+// -------------------------
+async function renderLeaderboard() {
+
+  const el = document.getElementById("leaderboard");
+  el.innerHTML = "<h3>🏆 Global Ranking</h3>";
+
+  const snap = await db.collection("travels").get();
+
+  const users = {};
+
+  snap.forEach(doc => {
+    const d = doc.data();
+    users[d.userId] = (users[d.userId] || 0) + 1;
+  });
+
+  Object.entries(users)
+    .sort((a,b) => b[1]-a[1])
+    .slice(0,5)
+    .forEach(u => {
+      const div = document.createElement("div");
+      div.innerHTML = `👤 ${u[0].slice(0,6)}... → 🌍 ${u[1]} Reisen`;
+      el.appendChild(div);
+    });
+}
