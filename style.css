@@ -4,13 +4,11 @@ body {
   background: #eaf3ff;
 }
 
-/* 📱 MAIN LAYOUT */
 .app {
   display: flex;
   height: 100vh;
 }
 
-/* 📍 NAVIGATION (WICHTIG) */
 .sidebar {
   width: 340px;
   background: white;
@@ -19,7 +17,6 @@ body {
   border-right: 1px solid #ddd;
 }
 
-/* INPUTS */
 input, select {
   width: 100%;
   padding: 10px;
@@ -35,18 +32,16 @@ button {
   border: none;
   color: white;
   border-radius: 10px;
-  cursor: pointer;
 }
 
-/* 🌍 GLOBE AREA */
+/* 🌍 GLOBE MUSS SICHTBAR BLEIBEN */
 #globeViz {
   flex: 1;
   min-height: 100vh;
 }
 
-/* 📱 MOBILE NAVIGATION FIX (WICHTIG) */
+/* 📱 MOBILE FIX */
 @media (max-width: 768px) {
-
   .app {
     flex-direction: column;
   }
