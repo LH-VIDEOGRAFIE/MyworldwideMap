@@ -1,8 +1,7 @@
-
 let travels = JSON.parse(localStorage.getItem("travels")) || [];
 let visitedCountries = JSON.parse(localStorage.getItem("countries")) || [];
 
-// 🌍 GLOBE (STABIL + MOBILE SAFE)
+// 🌍 GLOBE (STABIL + SICHTBAR)
 const globe = Globe()
 (document.getElementById("globeViz"))
   .globeImageUrl("https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg")
@@ -15,7 +14,7 @@ const globe = Globe()
   .pointColor(() => "red")
   .pointRadius(0.35);
 
-// 🌍 LÄNDER (ECHT + KLICKBAR)
+// 🌍 LÄNDER (KLICKBAR + RICHTIG)
 fetch("https://raw.githubusercontent.com/mledoze/countries/master/countries.geojson")
   .then(res => res.json())
   .then(data => {
@@ -32,7 +31,7 @@ fetch("https://raw.githubusercontent.com/mledoze/countries/master/countries.geoj
       .polygonSideColor(() => "rgba(0,0,0,0.02)")
       .polygonStrokeColor(() => "#666")
 
-      // 🟢 LAND KLICK (FIXED)
+      // 🟢 LAND CLICK
       .onPolygonClick(d => {
 
         const country = d.properties.name;
@@ -51,14 +50,10 @@ fetch("https://raw.githubusercontent.com/mledoze/countries/master/countries.geoj
           save();
           update();
         }
-      })
-
-      .onPolygonHover(d => {
-        document.body.style.cursor = d ? "pointer" : "default";
       });
   });
 
-// 📍 STADT HINZUFÜGEN (ECHTE GEO POSITION)
+// 📍 STADT HINZUFÜGEN (ECHTE KOORDINATEN)
 window.addTravel = async function () {
 
   const country = document.getElementById("countryInput").value;
@@ -76,7 +71,6 @@ window.addTravel = async function () {
     );
 
     const data = await res.json();
-
     if (!data.length) return alert("Stadt nicht gefunden");
 
     lat = parseFloat(data[0].lat);
@@ -105,7 +99,7 @@ function save() {
   localStorage.setItem("countries", JSON.stringify(visitedCountries));
 }
 
-// 📊 UPDATE SYSTEM
+// 📊 UPDATE UI
 function update() {
 
   globe.pointsData(travels);
@@ -116,12 +110,12 @@ function update() {
   document.getElementById("cityCount").innerText =
     `Städte: ${travels.filter(t => t.city).length}`;
 
-  renderCountryList();
+  renderList();
   updateCharts();
 }
 
-// 🗂 LISTE DER LÄNDER (DELETE FUNKTION)
-function renderCountryList() {
+// 🗂 LISTE + DELETE
+function renderList() {
 
   const el = document.getElementById("countryList");
   el.innerHTML = "<h3>🌍 Länder</h3>";
@@ -141,7 +135,7 @@ function renderCountryList() {
   });
 }
 
-// 🗑 REMOVE COUNTRY
+// 🗑 DELETE COUNTRY
 window.removeCountry = function (i) {
 
   const country = visitedCountries[i];
