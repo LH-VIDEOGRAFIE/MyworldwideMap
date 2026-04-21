@@ -3,6 +3,12 @@
 let travels = JSON.parse(localStorage.getItem("travels")) || [];
 let visitedCountries = JSON.parse(localStorage.getItem("countries")) || [];
 
+
+
+window.toggleMenu = function () {
+  document.getElementById("sidebar").classList.toggle("open");
+};
+
 // 🌍 GLOBE
 const globe = Globe()
 (document.getElementById("globeViz"))
