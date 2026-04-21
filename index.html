@@ -3,30 +3,40 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Travel Globe PRO</title>
+  <title>Travel Globe FULL STARTUP</title>
 
   <link rel="stylesheet" href="style.css"/>
 
+  <!-- Globe -->
   <script src="https://unpkg.com/three"></script>
   <script src="https://unpkg.com/globe.gl"></script>
+
+  <!-- Charts -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 </head>
 
 <body>
 
-<!-- 🍔 MOBILE MENU BUTTON -->
-<button class="menu-btn" onclick="toggleMenu()">☰</button>
+<button class="login-btn" onclick="login()">🔐 Login</button>
 
 <div class="app">
 
   <div class="sidebar" id="sidebar">
 
-    <h1>🌍 Travel Globe</h1>
+    <h1>🌍 Travel Globe SaaS</h1>
+
+    <div id="userInfo"></div>
 
     <div class="form">
 
-      <input id="countryInput" placeholder="Land hinzufügen (oder auf Globus klicken)" />
+      <input id="countryInput" placeholder="Land (oder Globus klicken)" />
       <input id="cityInput" placeholder="Stadt (optional)" />
+      <input id="photoInput" placeholder="Foto URL (optional)" />
 
       <select id="rating">
         <option value="5">⭐⭐⭐⭐⭐</option>
@@ -41,13 +51,16 @@
     </div>
 
     <div class="stats">
-      <h2>📊 Statistik</h2>
+      <h3>📊 Stats</h3>
       <p id="countryCount"></p>
       <p id="cityCount"></p>
     </div>
 
+    <div id="leaderboard"></div>
+
+    <div id="timeline"></div>
+
     <canvas id="pieChart"></canvas>
-    <canvas id="barChart"></canvas>
 
   </div>
 
