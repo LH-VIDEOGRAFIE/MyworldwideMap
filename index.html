@@ -3,30 +3,30 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>My World Wide Trip – PRODUCTION APP</title>
+<title>My World Wide Trip – FINAL UPGRADE</title>
 
 <script src="https://unpkg.com/globe.gl"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
 :root{
-  --bg:#f6f8fc;
+  --bg:#f4f7ff;
   --panel:#ffffff;
-  --accent:#1a73e8;
-  --accent2:#6d28d9;
-  --text:#0f172a;
+  --accent:#2563eb;
+  --accent2:#7c3aed;
   --soft:#eef2ff;
+  --text:#0f172a;
 }
 
 *{box-sizing:border-box}
 
 body{
   margin:0;
-  font-family:Arial, sans-serif;
-  background:var(--bg);
+  font-family:Arial;
+  background:linear-gradient(135deg,#f4f7ff,#eef2ff);
   color:var(--text);
   overflow:auto;
-  height:100vh;
 }
 
 /* TOP BAR */
@@ -44,23 +44,14 @@ body{
 }
 
 .logo{
-  font-weight:bold;
-  background:var(--accent);
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
   color:white;
-  padding:6px 10px;
+  padding:6px 12px;
   border-radius:10px;
+  font-weight:bold;
 }
 
-.burger{
-  display:none;
-  font-size:26px;
-  cursor:pointer;
-}
-
-.nav{
-  display:flex;
-  gap:8px;
-}
+.burger{display:none;font-size:26px;cursor:pointer}
 
 .nav button{
   background:transparent;
@@ -70,7 +61,6 @@ body{
   cursor:pointer;
 }
 
-/* LAYOUT */
 .container{
   display:flex;
   margin-top:60px;
@@ -83,17 +73,10 @@ body{
   padding:12px;
   overflow-y:auto;
   border-right:1px solid #e5e7eb;
-  transition:0.3s;
 }
 
-.sidebar.hidden{display:none;}
+#globe{flex:1}
 
-#globe{
-  flex:1;
-  height:100%;
-}
-
-/* INPUTS */
 input,textarea{
   width:100%;
   margin-top:6px;
@@ -122,22 +105,26 @@ button.action{
 }
 
 .flag{
-  width:80px;
+  width:70px;
+  margin:4px;
   border-radius:10px;
-  margin:6px;
-  box-shadow:0 6px 14px rgba(0,0,0,0.15);
+  animation:float 3s infinite ease-in-out;
+}
+
+@keyframes float{
+  0%,100%{transform:translateY(0)}
+  50%{transform:translateY(-5px)}
 }
 
 .badge{
   display:inline-block;
-  padding:5px 10px;
+  padding:6px 10px;
   background:#dbeafe;
   border-radius:8px;
   margin:3px;
   font-size:12px;
 }
 
-/* MOBILE */
 @media(max-width:900px){
   .container{flex-direction:column}
   .sidebar{width:100%;height:45vh}
@@ -146,44 +133,45 @@ button.action{
   .nav{display:none}
 }
 
+canvas{max-width:100%}
+
 </style>
 </head>
 
 <body>
 
 <div class="topnav">
-  <div class="logo">🌍 TRAVEL PRO</div>
-  <div class="burger" onclick="toggleMenu()">☰</div>
-  <div class="nav" id="nav">
-    <button onclick="setView('map')">Map</button>
-    <button onclick="setView('stats')">Stats</button>
-    <button onclick="exportView()">Export</button>
+  <div class="logo">🌍 WORLD TRIP</div>
+  <div class="burger" onclick="toggle()">☰</div>
+  <div class="nav">
+    <button onclick="view('map')">Map</button>
+    <button onclick="view('stats')">Stats</button>
+    <button onclick="exportPoster()">Export Poster</button>
   </div>
 </div>
 
 <div class="container">
 
-<div class="sidebar" id="sidebar">
+<div class="sidebar">
 
-  <h2>🌍 Travel Dashboard</h2>
+<h2>Reise Planer</h2>
 
-  <input id="search" placeholder="Land suchen" oninput="filterCountries()" />
-  <div id="countryList"></div>
+<input id="countryInput" placeholder="Land auswählen" />
+<input id="city" placeholder="Stadt" />
+<input id="date" type="date" />
+<textarea id="note" placeholder="Notizen / Diary"></textarea>
+<button class="action" onclick="addTrip()">Speichern</button>
 
-  <h3>Reise hinzufügen</h3>
-  <input id="city" placeholder="Stadt" />
-  <input id="date" type="date" />
-  <textarea id="note" placeholder="Notiz"></textarea>
-  <button class="action" onclick="addTrip()">Speichern</button>
+<h3>Reisen</h3>
+<div id="list"></div>
 
-  <h3>Statistik</h3>
-  <div id="stats"></div>
+<h3>Flaggen</h3>
+<div id="flags"></div>
 
-  <h3>Flaggen</h3>
-  <div id="flags"></div>
+<h3>Statistik</h3>
+<div id="stats"></div>
 
-  <h3>Reisen</h3>
-  <div id="list"></div>
+<canvas id="chart" height="180"></canvas>
 
 </div>
 
@@ -194,38 +182,22 @@ button.action{
 <script>
 
 let trips=JSON.parse(localStorage.getItem("trips")||"[]");
-let countries=[];
-let selectedCountry=null;
 let globe;
+let countries=[];
 
 function save(){localStorage.setItem("trips",JSON.stringify(trips));}
 
-function toggleMenu(){
-  sidebar.classList.toggle("hidden");
-}
-
-function setView(v){
-  alert("View: "+v);
-}
-
 fetch("https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson")
 .then(r=>r.json())
-.then(d=>{countries=d.features;init();renderCountries();});
+.then(d=>{countries=d.features;init();render();});
 
 function init(){
-
 globe=Globe()(document.getElementById('globe'))
 .globeImageUrl('https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg')
-.bumpImageUrl('https://unpkg.com/three-globe/example/img/earth-topology.png')
-.backgroundColor('#f6f8fc')
+.backgroundColor('#f4f7ff')
 .polygonsData(countries)
-.polygonCapColor(()=>"rgba(26,115,232,0.15)")
-.polygonStrokeColor(()=>"#1a73e8")
-.onPolygonClick(d=>{
-  selectedCountry=d.properties.name;
-  loadFlag(selectedCountry);
-});
-
+.polygonCapColor(()=>"rgba(37,99,235,0.15)")
+.polygonStrokeColor(()=>"#2563eb");
 updatePoints();
 }
 
@@ -234,9 +206,7 @@ globe.pointsData(trips)
 .pointLat(d=>d.lat)
 .pointLng(d=>d.lng)
 .pointColor(()=>"#ef4444")
-.pointRadius(0.5)
-.pointAltitude(0.02)
-.pointLabel(d=>d.city);
+.pointRadius(0.5);
 }
 
 async function geo(city){
@@ -245,15 +215,12 @@ let d=await r.json();
 return d[0]?{lat:+d[0].lat,lng:+d[0].lon}:{lat:0,lng:0};
 }
 
-function daysLeft(date){
-return Math.ceil((new Date(date)-new Date())/86400000);
-}
+function daysLeft(date){return Math.ceil((new Date(date)-new Date())/86400000)}
 
 async function addTrip(){
-if(!selectedCountry)return;
-let c=await geo(city.value+","+selectedCountry);
-trips.push({country:selectedCountry,city:city.value,date:date.value,note:note.value,lat:c.lat,lng:c.lng,days:daysLeft(date.value)});
-save();render();updatePoints();renderStats();renderFlags();
+let c=await geo(city.value+","+countryInput.value);
+trips.push({country:countryInput.value,city:city.value,date:date.value,note:note.value,lat:c.lat,lng:c.lng,days:daysLeft(date.value)});
+save();render();updatePoints();stats();drawChart();renderFlags();
 }
 
 function render(){
@@ -266,63 +233,54 @@ ${t.city}<br>
 </div>`).join('');
 }
 
-function renderStats(){
-stats.innerHTML=`
-<div class='badge'>Länder: ${new Set(trips.map(t=>t.country)).size}</div>
-<div class='badge'>Städte: ${trips.length}</div>
-<div class='badge'>Letzte Reise: ${trips.at(-1)?.city||"-"}</div>
-<div class='badge'>Welt %: ${((new Set(trips.map(t=>t.country)).size/195)*100).toFixed(1)}%</div>
-`;
-}
-
-function renderCountries(){
-countryList.innerHTML=countries.slice(0,25).map(c=>
-`<div onclick="selectCountry('${c.properties.name}')">🌍 ${c.properties.name}</div>`
-).join('');
-}
-
-function filterCountries(){
-let v=search.value.toLowerCase();
-countryList.innerHTML=countries.filter(c=>c.properties.name.toLowerCase().includes(v)).slice(0,25).map(c=>
-`<div onclick="selectCountry('${c.properties.name}')">🌍 ${c.properties.name}</div>`
-).join('');
-}
-
-function selectCountry(c){selectedCountry=c;loadFlag(c);}
-
-function loadFlag(c){
-fetch(`https://restcountries.com/v3.1/name/${c}`)
+function renderFlags(){
+flags.innerHTML="";
+trips.forEach(t=>{
+fetch(`https://restcountries.com/v3.1/name/${t.country}`)
 .then(r=>r.json())
 .then(d=>{
 let f=d[0]?.flags?.png;
-if(f)flags.innerHTML=`<img src='${f}' class='flag'/>`;
+if(f){
+let img=document.createElement('img');
+img.src=f;
+img.className='flag';
+flags.appendChild(img);
+}
+});
 });
 }
 
-function renderFlags(){
-flags.innerHTML="";
-trips.forEach(t=>loadFlag(t.country));
+function stats(){
+let countries=new Set(trips.map(t=>t.country)).size;
+stats.innerHTML=`
+<div class='badge'>🌍 Länder: ${countries}</div>
+<div class='badge'>🏙️ Städte: ${trips.length}</div>
+<div class='badge'>📊 Welt: ${((countries/195)*100).toFixed(1)}%</div>
+<div class='badge'>🧭 Letzte: ${trips.at(-1)?.city||"-"}</div>
+`;
 }
 
-function exportView(){
-html2canvas(document.body).then(c=>{
+function drawChart(){
+let ctx=document.getElementById('chart');
+new Chart(ctx,{type:'pie',data:{labels:['Reisen'],datasets:[{data:[trips.length],backgroundColor:['#2563eb']}]}});
+}
+
+function exportPoster(){
+html2canvas(document.body).then(canvas=>{
 let a=document.createElement('a');
-a.download="travel-pro.png";
-a.href=c.toDataURL();
+a.download="world-poster.png";
+a.href=canvas.toDataURL();
 a.click();
 });
 }
 
-function toggleMenu(){sidebar.classList.toggle('hidden');}
+function render(){renderFlags();stats();drawChart();}
 
-function setView(v){alert(v)}
+function view(v){alert(v)}
 
-renderStats();
+function toggle(){document.querySelector('.sidebar').classList.toggle('hidden')}
 
 </script>
 
 </body>
 </html>
-
-
-
