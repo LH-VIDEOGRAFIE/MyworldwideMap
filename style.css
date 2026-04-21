@@ -9,6 +9,7 @@ body {
   height: 100vh;
 }
 
+/* NAVIGATION */
 .sidebar {
   width: 340px;
   background: white;
@@ -29,29 +30,49 @@ button {
   width: 100%;
   padding: 10px;
   background: #2563eb;
-  border: none;
   color: white;
+  border: none;
   border-radius: 10px;
 }
 
-/* 🌍 GLOBE MUSS SICHTBAR BLEIBEN */
+/* GLOBE */
 #globeViz {
   flex: 1;
-  min-height: 100vh;
 }
 
-/* 📱 MOBILE FIX */
+/* BURGER */
+.burger {
+  display: none;
+  position: fixed;
+  top: 10px;
+  left: 10px;
+  font-size: 26px;
+  background: black;
+  color: white;
+  padding: 8px 12px;
+  border-radius: 8px;
+  z-index: 999;
+}
+
+/* MOBILE */
 @media (max-width: 768px) {
-  .app {
-    flex-direction: column;
-  }
+
+  .burger { display: block; }
 
   .sidebar {
-    width: 100%;
-    height: 45vh;
+    position: fixed;
+    left: -360px;
+    top: 0;
+    height: 100%;
+    transition: 0.3s;
+    z-index: 999;
+  }
+
+  .sidebar.open {
+    left: 0;
   }
 
   #globeViz {
-    height: 55vh;
+    height: 100vh;
   }
 }
