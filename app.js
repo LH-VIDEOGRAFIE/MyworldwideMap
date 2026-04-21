@@ -1,111 +1,87 @@
-
-// --------------------
-// STORAGE
-// --------------------
 let travels = JSON.parse(localStorage.getItem("travels")) || [];
 let visitedCountries = JSON.parse(localStorage.getItem("countries")) || [];
 
-// --------------------
-// GLOBE INIT
-// --------------------
+// 🌍 HELLE REALISTISCHE ERDE
 const globe = Globe()
 (document.getElementById("globeViz"))
-  .globeImageUrl("https://unpkg.com/three-globe/example/img/earth-night.jpg")
-  .backgroundColor("#050816")
-  .pointAltitude(0.02)
-  .pointRadius(0.3)
-  .pointsData(travels)
-  .pointLat(d => d.lat)
-  .pointLng(d => d.lng)
-  .pointColor(() => "orange");
+  .globeImageUrl("https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg")
+  .bumpImageUrl("https://unpkg.com/three-globe/example/img/earth-topology.png")
+  .backgroundColor("#dff1ff")
 
-// --------------------
-// LOAD COUNTRIES (REAL GEOJSON)
-// --------------------
+  .pointsData(travels)
+  .pointLat(d => d.lat || 0)
+  .pointLng(d => d.lng || 0)
+  .pointColor(() => "red")
+  .pointRadius(0.4)
+  .pointAltitude(0.02);
+
+// 🌍 LÄNDER LAYER (KLICKBAR)
 fetch("https://raw.githubusercontent.com/mledoze/countries/master/countries.geojson")
   .then(res => res.json())
   .then(data => {
 
-    globe
-      .polygonsData(data.features)
+    globe.polygonsData(data.features)
       .polygonCapColor(d => {
         const name = d.properties.name;
         return visitedCountries.includes(name)
-          ? "rgba(0,255,120,0.5)"
-          : "rgba(255,255,255,0.05)";
+          ? "rgba(0,200,0,0.5)"
+          : "rgba(0,0,0,0.05)";
       })
-      .polygonSideColor(() => "rgba(255,255,255,0.02)")
-      .polygonStrokeColor(() => "#222")
-      .polygonLabel(d => d.properties.name);
+      .polygonSideColor(() => "rgba(0,0,0,0.01)")
+      .polygonStrokeColor(() => "#555")
 
-    globe.onPolygonClick(handleCountryClick);
+      // ✨ HOVER ANIMATION
+      .onPolygonHover(d => {
+        document.body.style.cursor = d ? "pointer" : "default";
+      })
+
+      // 📍 CLICK LAND
+      .onPolygonClick(d => {
+        const name = d.properties.name;
+
+        if (!visitedCountries.includes(name)) {
+          visitedCountries.push(name);
+
+          travels.push({
+            country: name,
+            city: "",
+            lat: 0,
+            lng: 0,
+            rating: 5
+          });
+
+          save();
+          update();
+        }
+      });
   });
 
-// --------------------
-// COUNTRY CLICK
-// --------------------
-function handleCountryClick(country) {
+// ➕ MANUELL (OHNE LAT/LNG)
+window.addTravel = function () {
 
-  const name = country.properties.name;
-
-  if (!visitedCountries.includes(name)) {
-    visitedCountries.push(name);
-
-    travels.push({
-      country: name,
-      city: "",
-      lat: 0,
-      lng: 0,
-      rating: 5
-    });
-
-    save();
-    update();
-  }
-}
-
-// --------------------
-// CITY SEARCH (GEOCODING)
-// --------------------
-window.addCity = async function () {
-
+  const country = document.getElementById("countryInput").value;
   const city = document.getElementById("cityInput").value;
   const rating = document.getElementById("rating").value;
 
-  if (!city) return alert("Stadt eingeben");
+  if (!country) return alert("Land fehlt");
 
-  const res = await fetch(
-    `https://nominatim.openstreetmap.org/search?format=json&q=${city}`
-  );
+  if (!visitedCountries.includes(country)) {
+    visitedCountries.push(country);
+  }
 
-  const data = await res.json();
-  if (!data.length) return alert("Stadt nicht gefunden");
-
-  const { lat, lon, display_name } = data[0];
-
-  travels.push({
-    country: display_name,
-    city,
-    lat: parseFloat(lat),
-    lng: parseFloat(lon),
-    rating
-  });
+  travels.push({ country, city, lat: 0, lng: 0, rating });
 
   save();
   update();
 };
 
-// --------------------
-// SAVE
-// --------------------
+// 💾 SAVE
 function save() {
   localStorage.setItem("travels", JSON.stringify(travels));
   localStorage.setItem("countries", JSON.stringify(visitedCountries));
 }
 
-// --------------------
-// UPDATE
-// --------------------
+// 📊 UPDATE
 function update() {
 
   globe.pointsData(travels);
@@ -119,9 +95,7 @@ function update() {
   updateCharts();
 }
 
-// --------------------
-// CHARTS PRO
-// --------------------
+// 📊 CHARTS
 let pie, bar;
 
 function updateCharts() {
@@ -138,7 +112,7 @@ function updateCharts() {
       labels: ["Bereist", "Offen"],
       datasets: [{
         data: [visitedCountries.length, 195 - visitedCountries.length],
-        backgroundColor: ["#22c55e", "#1f2937"]
+        backgroundColor: ["green", "#ddd"]
       }]
     }
   });
@@ -153,13 +127,17 @@ function updateCharts() {
     data: {
       labels: Object.keys(map),
       datasets: [{
-        label: "Städte",
         data: Object.values(map),
-        backgroundColor: "#3b82f6"
+        backgroundColor: "blue"
       }]
     }
   });
 }
+
+// 🍔 MOBILE MENU
+window.toggleMenu = function () {
+  document.getElementById("sidebar").classList.toggle("active");
+};
 
 // INIT
 update();
