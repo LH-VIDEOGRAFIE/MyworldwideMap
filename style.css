@@ -2,7 +2,6 @@ body {
   margin: 0;
   font-family: Arial;
   background: #eaf3ff;
-  color: black;
 }
 
 .app {
@@ -10,6 +9,7 @@ body {
   height: 100vh;
 }
 
+/* SIDEBAR */
 .sidebar {
   width: 340px;
   background: white;
@@ -35,12 +35,15 @@ button {
   border-radius: 10px;
 }
 
+/* 🌍 GLOBE MUSS IMMER SICHTBAR BLEIBEN */
 #globeViz {
   flex: 1;
+  min-height: 100vh;
 }
 
-/* 📱 MOBILE */
+/* 📱 MOBILE FIX */
 @media (max-width: 768px) {
+
   .app {
     flex-direction: column;
   }
