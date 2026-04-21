@@ -3,40 +3,26 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Travel Globe FULL STARTUP</title>
+  <title>Travel Globe</title>
 
   <link rel="stylesheet" href="style.css"/>
 
-  <!-- Globe -->
   <script src="https://unpkg.com/three"></script>
   <script src="https://unpkg.com/globe.gl"></script>
-
-  <!-- Charts -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-  <!-- Firebase -->
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 </head>
 
 <body>
 
-<button class="login-btn" onclick="login()">🔐 Login</button>
-
 <div class="app">
 
-  <div class="sidebar" id="sidebar">
+  <div class="sidebar">
 
-    <h1>🌍 Travel Globe SaaS</h1>
-
-    <div id="userInfo"></div>
+    <h1>🌍 Travel Tracker</h1>
 
     <div class="form">
-
-      <input id="countryInput" placeholder="Land (oder Globus klicken)" />
-      <input id="cityInput" placeholder="Stadt (optional)" />
-      <input id="photoInput" placeholder="Foto URL (optional)" />
+      <input id="countryInput" placeholder="Land (optional)" />
+      <input id="cityInput" placeholder="Stadt (z. B. Sydney)" />
 
       <select id="rating">
         <option value="5">⭐⭐⭐⭐⭐</option>
@@ -46,21 +32,16 @@
         <option value="1">⭐</option>
       </select>
 
-      <button onclick="addTravel()">➕ Speichern</button>
-
+      <button onclick="addTravel()">➕ Hinzufügen</button>
     </div>
 
     <div class="stats">
-      <h3>📊 Stats</h3>
       <p id="countryCount"></p>
       <p id="cityCount"></p>
     </div>
 
-    <div id="leaderboard"></div>
-
-    <div id="timeline"></div>
-
     <canvas id="pieChart"></canvas>
+    <canvas id="barChart"></canvas>
 
   </div>
 
