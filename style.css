@@ -1,7 +1,7 @@
 body {
   margin: 0;
-  font-family: Arial, sans-serif;
-  background: #0b0f1a;
+  font-family: Arial;
+  background: #050816;
   color: white;
 }
 
@@ -10,57 +10,70 @@ body {
   height: 100vh;
 }
 
-/* Sidebar */
+/* SIDEBAR */
 .sidebar {
-  width: 320px;
-  background: #111827;
-  padding: 20px;
+  width: 340px;
+  background: rgba(17, 24, 39, 0.95);
+  padding: 15px;
   overflow-y: auto;
+  backdrop-filter: blur(10px);
 }
 
-.sidebar h1 {
-  font-size: 22px;
-  margin-bottom: 15px;
+h1 {
+  font-size: 20px;
 }
 
-.form input, .form select {
+input, select {
   width: 100%;
   margin: 5px 0;
   padding: 10px;
+  border-radius: 10px;
   border: none;
-  border-radius: 8px;
 }
 
 button {
   width: 100%;
   padding: 10px;
   background: #3b82f6;
-  color: white;
   border: none;
+  border-radius: 10px;
+  color: white;
   margin-top: 10px;
-  border-radius: 8px;
   cursor: pointer;
-  transition: 0.3s;
 }
 
 button:hover {
-  background: #2563eb;
   transform: scale(1.03);
 }
 
-/* Stats */
-.stats {
-  margin-top: 20px;
-}
-
-/* Charts */
 canvas {
-  margin-top: 20px;
+  margin-top: 15px;
   background: white;
   border-radius: 10px;
 }
 
-/* Globe */
+/* GLOBE */
 #globeViz {
   flex: 1;
+}
+
+/* 📱 MOBILE PRO */
+@media (max-width: 768px) {
+
+  .app {
+    flex-direction: column;
+  }
+
+  #globeViz {
+    height: 60vh;
+  }
+
+  .sidebar {
+    width: 100%;
+    height: 40vh;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    border-radius: 20px 20px 0 0;
+  }
 }
