@@ -3,207 +3,276 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>My World Wide Trip</title>
+<title>My World Wide Trip – FINAL</title>
 
 <script src="https://unpkg.com/globe.gl"></script>
 
 <style>
 :root{
-  --bg:#070b14;
-  --card:#111a2e;
+  --bg:#050814;
+  --panel:#0e1730;
   --accent:#4cc9f0;
-  --text:#fff;
+  --accent2:#a78bfa;
+  --text:#ffffff;
 }
+
+*{box-sizing:border-box}
 
 body{
   margin:0;
-  font-family:Arial;
+  font-family:Arial, sans-serif;
   background:var(--bg);
   color:var(--text);
-  display:flex;
-  height:100vh;
+  overflow:hidden;
 }
 
-.sidebar{
-  width:340px;
-  background:var(--card);
-  padding:14px;
-  overflow:auto;
+/* TOP NAV */
+.topnav{
+  position:fixed;
+  top:0;left:0;right:0;
+  height:60px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  background:#0b1226;
+  padding:0 12px;
+  z-index:1000;
+  border-bottom:1px solid #1f2a4a;
 }
 
 .logo{
-  background:#fff;
-  color:#000;
-  padding:10px;
-  border-radius:10px;
-  text-align:center;
   font-weight:bold;
+  background:white;
+  color:black;
+  padding:6px 10px;
+  border-radius:10px;
 }
 
-input,textarea,button{
-  width:100%;
-  margin-top:8px;
-  padding:10px;
-  border-radius:10px;
-  border:none;
+.nav button{
+  margin:0 4px;
+  background:transparent;
+  border:1px solid #2b3b66;
+  color:white;
+  padding:6px 10px;
+  border-radius:8px;
+  cursor:pointer;
 }
 
-button{background:var(--accent);font-weight:bold;cursor:pointer}
+.container{
+  display:flex;
+  height:100vh;
+  padding-top:60px;
+}
 
-.card{
-  background:#0c1528;
-  padding:10px;
-  margin-top:10px;
-  border-radius:10px;
+.sidebar{
+  width:360px;
+  background:var(--panel);
+  padding:12px;
+  overflow:auto;
 }
 
 #globe{
   flex:1;
 }
 
+input,textarea{
+  width:100%;
+  margin-top:8px;
+  padding:10px;
+  border-radius:10px;
+  border:none;
+  background:#0a1022;
+  color:white;
+}
+
+button.action{
+  width:100%;
+  margin-top:8px;
+  padding:10px;
+  border:none;
+  border-radius:10px;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  color:black;
+  font-weight:bold;
+  cursor:pointer;
+}
+
+.card{
+  background:#0c142b;
+  padding:10px;
+  border-radius:10px;
+  margin-top:10px;
+}
+
+.badge{
+  display:inline-block;
+  padding:4px 8px;
+  background:#1b2a52;
+  border-radius:6px;
+  margin:2px;
+  font-size:12px;
+}
+
+#modal{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,0.6);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  z-index:2000;
+}
+
+.modalBox{
+  background:#111a33;
+  padding:20px;
+  border-radius:12px;
+  width:300px;
+}
+
 @media(max-width:900px){
-  body{flex-direction:column}
+  .container{flex-direction:column}
   .sidebar{width:100%;height:45vh}
   #globe{height:55vh}
 }
+
 </style>
 </head>
 
 <body>
 
+<div class="topnav">
+  <div class="logo">🌍 LOGO</div>
+  <div class="nav">
+    <button onclick="view('map')">Map</button>
+    <button onclick="view('stats')">Stats</button>
+    <button onclick="view('bucket')">Bucket</button>
+  </div>
+</div>
+
+<div class="container">
+
 <div class="sidebar">
-  <div class="logo">LOGO (logo.png)</div>
 
-  <h2>🌍 Travel App</h2>
+  <h2>My World Wide Trip</h2>
 
-  <input id="search" placeholder="Land suchen (z.B. Germany)" oninput="filterCountries()" />
+  <input id="search" placeholder="Land suchen..." oninput="filterCountries()" />
   <div id="countryList"></div>
 
-  <hr />
-
-  <h3>Reise hinzufügen</h3>
+  <h3>Reise</h3>
   <input id="city" placeholder="Stadt" />
   <input id="date" type="date" />
   <textarea id="note" placeholder="Notiz"></textarea>
-  <button onclick="addTrip()">Speichern</button>
+  <button class="action" onclick="addTrip()">Speichern</button>
 
   <h3>Statistik</h3>
   <div id="stats"></div>
 
   <h3>Reisen</h3>
   <div id="list"></div>
+
+  <h3>Flaggen</h3>
+  <div id="flags"></div>
+
 </div>
 
 <div id="globe"></div>
 
+</div>
+
+<div id="modal">
+  <div class="modalBox">
+    <h3 id="modalText"></h3>
+    <button onclick="closeModal()">OK</button>
+  </div>
+</div>
+
 <script>
 
-let trips = JSON.parse(localStorage.getItem("trips")||"[]");
-let countriesData = [];
-let selectedCountry = null;
+let trips=JSON.parse(localStorage.getItem("trips")||"[]");
+let countries=[];
+let selectedCountry=null;
 
-function save(){
-  localStorage.setItem("trips",JSON.stringify(trips));
-}
+function save(){localStorage.setItem("trips",JSON.stringify(trips));}
 
-// ===== LOAD COUNTRIES =====
+function modal(t){modal.style.display="flex";modalText.innerText=t;}
+function closeModal(){modal.style.display="none";}
+
+function view(v){modal("Navigation: "+v)}
+
+// WORLD DATA
 fetch("https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson")
 .then(r=>r.json())
-.then(data=>{
-  countriesData = data.features;
-  initGlobe();
-  renderCountries();
-});
+.then(d=>{countries=d.features;init();renderCountries();});
 
-// ===== GLOBE =====
-let world;
+let globe;
 
-function initGlobe(){
-
-world = Globe()
-(document.getElementById('globe'))
+function init(){
+globe=Globe()(document.getElementById('globe'))
 .globeImageUrl('https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg')
 .bumpImageUrl('https://unpkg.com/three-globe/example/img/earth-topology.png')
-.backgroundColor('#070b14')
-.polygonsData(countriesData)
-.polygonCapColor(()=>'rgba(80,150,255,0.15)')
-.polygonStrokeColor(()=>'#4cc9f0')
+.backgroundColor('#050814')
+.polygonsData(countries)
+.polygonCapColor(()=>"rgba(76,201,240,0.15)")
+.polygonStrokeColor(()=>"#4cc9f0")
 .onPolygonClick(d=>{
-  selectedCountry = d.properties.name;
-  alert("Ausgewählt: " + selectedCountry);
+selectedCountry=d.properties.name;
+modal("Land: "+selectedCountry);
+loadFlag(selectedCountry);
 });
-
 updatePoints();
-
 }
 
-// ===== POINTS =====
 function updatePoints(){
-world.pointsData(trips)
+globe.pointsData(trips)
 .pointLat(d=>d.lat)
 .pointLng(d=>d.lng)
-.pointColor(()=>"red")
-.pointRadius(0.4)
-.pointAltitude(0.02)
+.pointColor(()=>"#ff3b3b")
+.pointRadius(0.35)
 .pointLabel(d=>d.city);
 }
 
-// ===== ADD TRIP =====
-function addTrip(){
-  if(!selectedCountry) return alert("Bitte Land auswählen!");
-
-  let t = {
-    country:selectedCountry,
-    city:city.value,
-    date:date.value,
-    note:note.value,
-    lat:0,
-    lng:0
-  };
-
-  trips.push(t);
-  save();
-  render();
-  updatePoints();
-  updateStats();
+async function geocode(city){
+let r=await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${city}`);
+let d=await r.json();
+return d[0]?{lat:+d[0].lat,lng:+d[0].lon}:{lat:0,lng:0};
 }
 
-// ===== LIST =====
+async function addTrip(){
+if(!selectedCountry)return modal("Bitte Land wählen");
+let c=await geocode(city.value+","+selectedCountry);
+trips.push({country:selectedCountry,city:city.value,date:date.value,note:note.value,lat:c.lat,lng:c.lng});
+save();render();updatePoints();stats();}
+
 function render(){
-list.innerHTML = trips.map(t=>
-`<div class='card'><b>${t.country}</b><br>${t.city}<br>${t.date}<br>${t.note}</div>`
-).join('');
+list.innerHTML=trips.map(t=>`<div class='card'><b>${t.country}</b><br>${t.city}<br>${t.date}<br>${t.note}</div>`).join('');
 }
 
-// ===== STATS =====
-function updateStats(){
-  let countries = new Set(trips.map(t=>t.country)).size;
-  stats.innerHTML = `Länder besucht: ${countries}<br>Städte: ${trips.length}`;
+function stats(){
+stats.innerHTML=`<div class='badge'>Länder: ${new Set(trips.map(t=>t.country)).size}</div><div class='badge'>Städte: ${trips.length}</div>`;
 }
 
-// ===== SEARCH =====
 function renderCountries(){
-countryList.innerHTML = countriesData.slice(0,20).map(c=>
-`<div onclick="selectCountry('${c.properties.name}')">🌍 ${c.properties.name}</div>`
-).join('');
+countryList.innerHTML=countries.slice(0,20).map(c=>`<div onclick="selectCountry('${c.properties.name}')">🌍 ${c.properties.name}</div>`).join('');
 }
 
 function filterCountries(){
-let val = search.value.toLowerCase();
-countryList.innerHTML = countriesData
-.filter(c=>c.properties.name.toLowerCase().includes(val))
-.slice(0,20)
-.map(c=>`<div onclick="selectCountry('${c.properties.name}')">🌍 ${c.properties.name}</div>`)
-.join('');
+let v=search.value.toLowerCase();
+countryList.innerHTML=countries.filter(c=>c.properties.name.toLowerCase().includes(v)).slice(0,20).map(c=>`<div onclick="selectCountry('${c.properties.name}')">🌍 ${c.properties.name}</div>`).join('');
 }
 
-function selectCountry(c){
-selectedCountry=c;
-alert("Ausgewählt: "+c);
+function selectCountry(c){selectedCountry=c;modal("Ausgewählt: "+c);loadFlag(c);}
+
+async function loadFlag(country){
+try{
+let r=await fetch(`https://restcountries.com/v3.1/name/${country}`);
+let d=await r.json();
+let f=d[0]?.flags?.png;
+if(f){flags.innerHTML=`<img src='${f}' width='100'/>`}
+}catch(e){}
 }
 
-render();
-updateStats();
+render();stats();
 
 </script>
 
