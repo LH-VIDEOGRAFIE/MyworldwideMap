@@ -1,7 +1,7 @@
 let travels = JSON.parse(localStorage.getItem("travels")) || [];
 let visitedCountries = JSON.parse(localStorage.getItem("countries")) || [];
 
-// 🌍 HELLE REALISTISCHE ERDE
+// 🌍 REALISTIC EARTH
 const globe = Globe()
 (document.getElementById("globeViz"))
   .globeImageUrl("https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg")
@@ -9,44 +9,47 @@ const globe = Globe()
   .backgroundColor("#dff1ff")
 
   .pointsData(travels)
-  .pointLat(d => d.lat || 0)
-  .pointLng(d => d.lng || 0)
+  .pointLat(d => d.lat)
+  .pointLng(d => d.lng)
   .pointColor(() => "red")
-  .pointRadius(0.4)
+  .pointRadius(0.35)
   .pointAltitude(0.02);
 
-// 🌍 LÄNDER LAYER (KLICKBAR)
+// 🌍 COUNTRIES (100% GEO ACCURATE)
 fetch("https://raw.githubusercontent.com/mledoze/countries/master/countries.geojson")
   .then(res => res.json())
   .then(data => {
 
     globe.polygonsData(data.features)
+
       .polygonCapColor(d => {
         const name = d.properties.name;
         return visitedCountries.includes(name)
           ? "rgba(0,200,0,0.5)"
-          : "rgba(0,0,0,0.05)";
+          : "rgba(255,255,255,0.03)";
       })
-      .polygonSideColor(() => "rgba(0,0,0,0.01)")
-      .polygonStrokeColor(() => "#555")
 
-      // ✨ HOVER ANIMATION
+      .polygonSideColor(() => "rgba(0,0,0,0.02)")
+      .polygonStrokeColor(() => "#666")
+
+      // 🟢 HOVER
       .onPolygonHover(d => {
         document.body.style.cursor = d ? "pointer" : "default";
       })
 
-      // 📍 CLICK LAND
+      // 📍 CLICK = EXACT COUNTRY
       .onPolygonClick(d => {
-        const name = d.properties.name;
 
-        if (!visitedCountries.includes(name)) {
-          visitedCountries.push(name);
+        const country = d.properties.name;
+
+        if (!visitedCountries.includes(country)) {
+          visitedCountries.push(country);
 
           travels.push({
-            country: name,
+            country,
             city: "",
-            lat: 0,
-            lng: 0,
+            lat: d.properties.lat || 0,
+            lng: d.properties.lng || 0,
             rating: 5
           });
 
@@ -56,20 +59,45 @@ fetch("https://raw.githubusercontent.com/mledoze/countries/master/countries.geoj
       });
   });
 
-// ➕ MANUELL (OHNE LAT/LNG)
-window.addTravel = function () {
+// 📍 CITY SEARCH (REAL GEOLOCATION FIX)
+window.addTravel = async function () {
 
   const country = document.getElementById("countryInput").value;
   const city = document.getElementById("cityInput").value;
   const rating = document.getElementById("rating").value;
 
-  if (!country) return alert("Land fehlt");
+  if (!country && !city) return alert("Bitte Land oder Stadt eingeben");
 
-  if (!visitedCountries.includes(country)) {
+  let lat = 0;
+  let lng = 0;
+  let display = city || country;
+
+  // 🌍 REAL GEO API
+  if (city) {
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/search?format=json&q=${city}`
+    );
+
+    const data = await res.json();
+
+    if (data.length > 0) {
+      lat = parseFloat(data[0].lat);
+      lng = parseFloat(data[0].lon);
+      display = data[0].display_name;
+    }
+  }
+
+  if (country && !visitedCountries.includes(country)) {
     visitedCountries.push(country);
   }
 
-  travels.push({ country, city, lat: 0, lng: 0, rating });
+  travels.push({
+    country: country || display,
+    city,
+    lat,
+    lng,
+    rating
+  });
 
   save();
   update();
@@ -112,7 +140,7 @@ function updateCharts() {
       labels: ["Bereist", "Offen"],
       datasets: [{
         data: [visitedCountries.length, 195 - visitedCountries.length],
-        backgroundColor: ["green", "#ddd"]
+        backgroundColor: ["#16a34a", "#ddd"]
       }]
     }
   });
@@ -128,16 +156,11 @@ function updateCharts() {
       labels: Object.keys(map),
       datasets: [{
         data: Object.values(map),
-        backgroundColor: "blue"
+        backgroundColor: "#2563eb"
       }]
     }
   });
 }
-
-// 🍔 MOBILE MENU
-window.toggleMenu = function () {
-  document.getElementById("sidebar").classList.toggle("active");
-};
 
 // INIT
 update();
