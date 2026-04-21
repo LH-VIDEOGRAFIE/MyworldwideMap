@@ -1,7 +1,8 @@
+
 let travels = JSON.parse(localStorage.getItem("travels")) || [];
 let visitedCountries = JSON.parse(localStorage.getItem("countries")) || [];
 
-// 🌍 GLOBE (STABIL + SICHTBAR)
+// 🌍 GLOBE (STABIL)
 const globe = Globe()
 (document.getElementById("globeViz"))
   .globeImageUrl("https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg")
@@ -14,7 +15,7 @@ const globe = Globe()
   .pointColor(() => "red")
   .pointRadius(0.35);
 
-// 🌍 LÄNDER (KLICKBAR + RICHTIG)
+// 🌍 LÄNDER (ECHTE FLÄCHEN + KLICKBAR)
 fetch("https://raw.githubusercontent.com/mledoze/countries/master/countries.geojson")
   .then(res => res.json())
   .then(data => {
@@ -31,20 +32,20 @@ fetch("https://raw.githubusercontent.com/mledoze/countries/master/countries.geoj
       .polygonSideColor(() => "rgba(0,0,0,0.02)")
       .polygonStrokeColor(() => "#666")
 
-      // 🟢 LAND CLICK
+      // 🟢 LAND KLICK (CORRECT LOGIC)
       .onPolygonClick(d => {
-
         const country = d.properties.name;
 
         if (!visitedCountries.includes(country)) {
           visitedCountries.push(country);
 
+          // ❗ WICHTIG: KEIN FAKE MARKER MEHR
           travels.push({
             country,
-            city: "",
-            lat: 0,
-            lng: 0,
-            rating: 5
+            city: null,
+            lat: null,
+            lng: null,
+            isCountry: true
           });
 
           save();
@@ -62,8 +63,8 @@ window.addTravel = async function () {
 
   if (!country && !city) return alert("Bitte eingeben");
 
-  let lat = 0;
-  let lng = 0;
+  let lat = null;
+  let lng = null;
 
   if (city) {
     const res = await fetch(
@@ -86,7 +87,8 @@ window.addTravel = async function () {
     city,
     lat,
     lng,
-    rating
+    rating,
+    isCountry: false
   });
 
   save();
@@ -99,10 +101,11 @@ function save() {
   localStorage.setItem("countries", JSON.stringify(visitedCountries));
 }
 
-// 📊 UPDATE UI
+// 📊 UPDATE
 function update() {
 
-  globe.pointsData(travels);
+  // ❗ FILTER NUR ECHTE PUNKTE
+  globe.pointsData(travels.filter(t => t.lat && t.lng));
 
   document.getElementById("countryCount").innerText =
     `Länder: ${visitedCountries.length} / 195`;
@@ -114,7 +117,7 @@ function update() {
   updateCharts();
 }
 
-// 🗂 LISTE + DELETE
+// 🗂 LISTE + DELETE + RESTORE
 function renderList() {
 
   const el = document.getElementById("countryList");
@@ -135,12 +138,13 @@ function renderList() {
   });
 }
 
-// 🗑 DELETE COUNTRY
+// 🗑 DELETE COUNTRY (FIXED)
 window.removeCountry = function (i) {
 
   const country = visitedCountries[i];
 
   visitedCountries.splice(i, 1);
+
   travels = travels.filter(t => t.country !== country);
 
   save();
