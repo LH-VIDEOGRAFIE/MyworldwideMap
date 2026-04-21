@@ -16,16 +16,14 @@
 
 <div class="app">
 
-  <!-- 📱 NAVIGATION / SIDEBAR -->
+  <!-- 🧭 NAVIGATION -->
   <div class="sidebar">
 
     <h1>🌍 Travel Tracker</h1>
 
-    <!-- ➕ INPUTS -->
     <div class="form">
-
       <input id="countryInput" placeholder="Land (optional)" />
-      <input id="cityInput" placeholder="Stadt suchen" />
+      <input id="cityInput" placeholder="Stadt (z. B. Sydney)" />
 
       <select id="rating">
         <option value="5">⭐⭐⭐⭐⭐</option>
@@ -36,20 +34,17 @@
       </select>
 
       <button onclick="addTravel()">➕ Hinzufügen</button>
-
     </div>
 
-    <!-- 📊 STATS -->
     <div class="stats">
       <h3>📊 Statistik</h3>
       <p id="countryCount"></p>
       <p id="cityCount"></p>
     </div>
 
-    <!-- 🌍 LISTE -->
+    <!-- 🗂 LISTE -->
     <div id="countryList"></div>
 
-    <!-- 📈 CHARTS -->
     <canvas id="pieChart"></canvas>
     <canvas id="barChart"></canvas>
 
