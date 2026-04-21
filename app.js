@@ -1,40 +1,38 @@
-
 let travels = JSON.parse(localStorage.getItem("travels")) || [];
 let visitedCountries = JSON.parse(localStorage.getItem("countries")) || [];
 
-// 🌍 REAL GLOBE (HELL + STABIL)
-const globe = Globe()
-(document.getElementById("globeViz"))
+// 🌍 GLOBE (SAUBER INITIALISIERT)
+const globe = Globe()(document.getElementById("globeViz"));
+
+globe
   .globeImageUrl("https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg")
   .bumpImageUrl("https://unpkg.com/three-globe/example/img/earth-topology.png")
   .backgroundColor("#eaf3ff")
-
   .pointsData(travels)
   .pointLat(d => d.lat)
   .pointLng(d => d.lng)
   .pointColor(() => "red")
   .pointRadius(0.35);
 
-// 🌍 ECHTE LÄNDER (CLICK FIXED)
+// 🌍 LOAD COUNTRIES (IMPORTANT: NACH GLOBE INIT)
 fetch("https://raw.githubusercontent.com/mledoze/countries/master/countries.geojson")
   .then(res => res.json())
   .then(data => {
 
-    globe.polygonsData(data.features)
+    globe.polygonsData(data.features);
 
+    globe
       .polygonCapColor(d => {
         const name = d.properties.name;
         return visitedCountries.includes(name)
           ? "rgba(0,200,0,0.5)"
           : "rgba(255,255,255,0.05)";
       })
-
       .polygonSideColor(() => "rgba(0,0,0,0.02)")
       .polygonStrokeColor(() => "#666")
 
-      // ✅ FIX: COUNTRY CLICK WIRKLICH STABIL
+      // ✅ LAND KLICK FUNKTIONIERT JETZT WIRKLICH
       .onPolygonClick(d => {
-
         const country = d.properties.name;
 
         if (!visitedCountries.includes(country)) {
@@ -58,7 +56,7 @@ fetch("https://raw.githubusercontent.com/mledoze/countries/master/countries.geoj
       });
   });
 
-// 📍 CITY GEO FIX (REAL POSITION!)
+// 📍 ADD TRAVEL (ECHTE KOORDINATEN FIX)
 window.addTravel = async function () {
 
   const country = document.getElementById("countryInput").value;
@@ -77,7 +75,7 @@ window.addTravel = async function () {
 
     const data = await res.json();
 
-    if (!data.length) return alert("Ort nicht gefunden");
+    if (data.length === 0) return alert("Ort nicht gefunden");
 
     lat = parseFloat(data[0].lat);
     lng = parseFloat(data[0].lon);
@@ -105,7 +103,7 @@ function save() {
   localStorage.setItem("countries", JSON.stringify(visitedCountries));
 }
 
-// 📊 UPDATE
+// 📊 UPDATE UI
 function update() {
 
   globe.pointsData(travels);
