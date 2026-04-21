@@ -3,58 +3,57 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Travel Tracker Globe</title>
+  <title>Travel Globe PRO</title>
 
   <link rel="stylesheet" href="style.css"/>
 
-  <!-- Globe.gl + Three.js -->
   <script src="https://unpkg.com/three"></script>
   <script src="https://unpkg.com/globe.gl"></script>
-
-  <!-- Chart.js -->
+  <script src="https://unpkg.com/topojson-client@3"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
 <body>
 
-  <div class="app">
+<div class="app">
 
-    <!-- SIDEBAR -->
-    <div class="sidebar">
-      <h1>🌍 Travel Tracker</h1>
+  <!-- SIDEBAR -->
+  <div class="sidebar">
 
-      <div class="form">
-        <input id="countryInput" placeholder="Land (z. B. Australien)" />
-        <input id="cityInput" placeholder="Stadt (z. B. Sydney)" />
-        <input id="latInput" placeholder="Breitengrad (z. B. -33.86)" />
-        <input id="lngInput" placeholder="Längengrad (z. B. 151.21)" />
+    <h1>🌍 Travel Globe PRO</h1>
 
-        <select id="rating">
-          <option value="5">⭐⭐⭐⭐⭐</option>
-          <option value="4">⭐⭐⭐⭐</option>
-          <option value="3">⭐⭐⭐</option>
-          <option value="2">⭐⭐</option>
-          <option value="1">⭐</option>
-        </select>
+    <div class="form">
 
-        <button onclick="addTravel()">Speichern</button>
-      </div>
+      <input id="countryInput" placeholder="Land (optional, Klick reicht)" />
+      <input id="cityInput" placeholder="Stadt suchen (z. B. Sydney)" />
 
-      <div class="stats">
-        <h2>📊 Statistik</h2>
-        <p id="countryCount">Länder: 0 / 195</p>
-        <p id="cityCount">Städte: 0</p>
-      </div>
+      <select id="rating">
+        <option value="5">⭐⭐⭐⭐⭐</option>
+        <option value="4">⭐⭐⭐⭐</option>
+        <option value="3">⭐⭐⭐</option>
+        <option value="2">⭐⭐</option>
+        <option value="1">⭐</option>
+      </select>
 
-      <canvas id="pieChart"></canvas>
-      <canvas id="barChart"></canvas>
+      <button onclick="addCity()">➕ Reise hinzufügen</button>
+
     </div>
 
-    <!-- GLOBE -->
-    <div id="globeViz"></div>
+    <div class="stats">
+      <h2>📊 Statistik</h2>
+      <p id="countryCount"></p>
+      <p id="cityCount"></p>
+    </div>
+
+    <canvas id="pieChart"></canvas>
+    <canvas id="barChart"></canvas>
 
   </div>
 
-  <script src="app.js"></script>
+  <div id="globeViz"></div>
+
+</div>
+
+<script src="app.js"></script>
 </body>
 </html>
