@@ -3,22 +3,296 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Interactive Globe Core</title>
+<title>World Travel Globe</title>
+
+<script src="https://unpkg.com/three@0.156.1/build/three.min.js"></script>
+<script src="https://unpkg.com/globe.gl@2.30.1/dist/globe.gl.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+
+body{
+margin:0;
+font-family:Arial;
+background:#f4f8ff;
+overflow:hidden;
+}
+
+/* NAVIGATION */
+header{
+position:fixed;
+top:0;left:0;right:0;
+height:60px;
+background:white;
+display:flex;
+justify-content:space-between;
+align-items:center;
+padding:0 12px;
+box-shadow:0 2px 10px rgba(0,0,0,0.08);
+z-index:100;
+}
+
+nav button{
+margin:0 4px;
+padding:8px 12px;
+border:none;
+border-radius:8px;
+background:#2563eb;
+color:white;
+cursor:pointer;
+}
+
+/* LAYOUT */
+#app{
+display:flex;
+height:100vh;
+padding-top:60px;
+}
+
+/* SIDEBAR */
+#panel{
+width:320px;
+background:white;
+padding:10px;
+overflow:auto;
+}
+
+/* GLOBE */
+#globe{
+flex:1;
+}
+
+/* VIEWS */
+.view{display:none;}
+.view.active{display:block;}
+
+/* INPUT */
+input{
+width:100%;
+padding:8px;
+margin:5px 0;
+border-radius:8px;
+border:1px solid #ddd;
+}
+
+button.action{
+width:100%;
+padding:10px;
+background:#2563eb;
+color:white;
+border:none;
+border-radius:10px;
+cursor:pointer;
+}
+
+/* CARD */
+.card{
+background:#eef4ff;
+padding:8px;
+margin-top:6px;
+border-radius:10px;
+}
+
+/* MOBILE */
+@media(max-width:800px){
+#panel{
+position:absolute;
+bottom:0;
+top:60px;
+width:100%;
+}
+}
+
+</style>
+</head>
+
+<body>
+
+<header>
+<div>🌍 World Travel Globe</div>
+<nav>
+<button onclick="show('globe')">Globe</button>
+<button onclick="show('stats')">Stats</button>
+</nav>
+</header>
+
+<div id="app">
+
+<div id="panel">
+
+<!-- GLOBE UI -->
+<div id="globeView" class="view active">
+<h3>🌍 Weltkugel</h3>
+<p>Klicke ein Land → Reise hinzufügen</p>
+
+<div id="popup" style="display:none;">
+<h4 id="countryName"></h4>
+<input id="cityInput" placeholder="Stadt (optional)">
+<button class="action" onclick="saveTravel()">Speichern</button>
+</div>
+
+</div>
+
+<!-- STATS -->
+<div id="statsView" class="view">
+<h3>📊 Statistik</h3>
+<div id="statsBox"></div>
+<canvas id="pie"></canvas>
+<canvas id="bar"></canvas>
+</div>
+
+</div>
+
+<div id="globe"></div>
+
+</div>
+
+<script>
+
+/* ======================
+   STATE
+====================== */
+
+let travels = JSON.parse(localStorage.getItem("travels")||"[]");
+let visited = new Set(travels.map(t=>t.country));
+
+let selectedCountry = null;
+
+/* ======================
+   GLOBE
+====================== */
+
+const globe = Globe()
+(document.getElementById('globe'))
+.globeImageUrl('https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg')
+.bumpImageUrl('https://unpkg.com/three-globe/example/img/earth-topology.png')
+.onPolygonClick(p=>{
+openPopup(p.properties.name);
+});
+
+fetch('https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson')
+.then(r=>r.json())
+.then(world=>{
+
+globe.polygonsData(world.features)
+.polygonCapColor(d=>{
+return visited.has(d.properties.name)
+? 'rgba(37,99,235,0.6)'
+: 'rgba(0,0,0,0.05)';
+})
+.polygonStrokeColor(()=>"#1e3a8a");
+
+});
+
+/* ======================
+   POPUP
+====================== */
+
+function openPopup(country){
+selectedCountry = country;
+document.getElementById("countryName").innerText = country;
+document.getElementById("popup").style.display = "block";
+}
+
+function saveTravel(){
+
+let city = document.getElementById("cityInput").value;
+
+travels.push({
+country:selectedCountry,
+city:city || "-",
+date:new Date().toISOString().split("T")[0]
+});
+
+visited.add(selectedCountry);
+
+localStorage.setItem("travels",JSON.stringify(travels));
+
+document.getElementById("popup").style.display="none";
+
+updateGlobe();
+renderStats();
+}
+
+/* ======================
+   GLOBE UPDATE
+====================== */
+
+function updateGlobe(){
+globe.polygonsData(globe.polygonsData());
+}
+
+/* ======================
+   STATS
+====================== */
+
+function renderStats(){
+
+let count = visited.size;
+let percent = (count/195*100).toFixed(1);
+
+statsBox.innerHTML=`
+<b>Länder besucht:</b> ${count}<br>
+<b>Welt:</b> ${percent}%
+`;
+
+new Chart(pie,{
+type:"pie",
+data:{
+labels:["Visited","Remaining"],
+datasets:[{data:[count,195-count]}]
+}
+});
+
+new Chart(bar,{
+type:"bar",
+data:{
+labels:["World"],
+datasets:[{
+label:"Countries Visited",
+data:[count]
+}]
+}
+});
+
+}
+
+/* ======================
+   NAV
+====================== */
+
+function show(v){
+document.querySelectorAll(".view").forEach(x=>x.classList.remove("active"));
+document.getElementById(v+"View").classList.add("active");
+}
+
+/* INIT */
+renderStats();
+
+</script>
+
+</body>
+</html>
+
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Globe Fix</title>
 
 <script src="https://unpkg.com/three@0.156.1/build/three.min.js"></script>
 <script src="https://unpkg.com/globe.gl@2.30.1/dist/globe.gl.min.js"></script>
 
 <style>
-body{
-margin:0;
-overflow:hidden;
-font-family:Arial;
-background:#0b1220;
+body {
+margin: 0;
+background: #000;
+overflow: hidden;
 }
-
-#globe{
-width:100vw;
-height:100vh;
+#globe {
+width: 100vw;
+height: 100vh;
 }
 </style>
 </head>
@@ -29,65 +303,27 @@ height:100vh;
 
 <script>
 
-/* =========================
-   STATE (Reise-Daten)
-========================= */
-
-let visited = new Set();
-
-/* =========================
-   GLOBE INIT (CORE)
-========================= */
+/* WICHTIG: wartet bis DOM bereit ist */
+window.addEventListener("DOMContentLoaded", () => {
 
 const globe = Globe()
 (document.getElementById('globe'))
+
 .globeImageUrl('https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg')
 .bumpImageUrl('https://unpkg.com/three-globe/example/img/earth-topology.png')
+
 .showAtmosphere(true)
 .atmosphereColor('lightskyblue')
 .atmosphereAltitude(0.25);
 
-/* =========================
-   LOAD COUNTRIES (REAL GEOJSON)
-========================= */
-
-fetch('https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson')
-.then(res => res.json())
-.then(world => {
-
-globe
-.polygonsData(world.features)
-.polygonAltitude(0.01)
-.polygonCapColor(d => {
-return visited.has(d.properties.name)
-? 'rgba(0,200,120,0.6)'   // visited = grün
-: 'rgba(255,255,255,0.05)'; // default
-})
-.polygonStrokeColor(() => '#1e3a8a')
-.polygonSideColor(() => 'rgba(0,0,0,0.05)')
-
-/* CLICK EVENT */
-.onPolygonClick(d => {
-const country = d.properties.name;
-
-visited.add(country);
-
-console.log("Visited:", country);
-
-/* UPDATE COLORS */
-globe.polygonsData(world.features);
-});
-});
-
-/* =========================
-   CAMERA START POSITION
-========================= */
-
+/* Kamera setzen */
 globe.pointOfView({
 lat: 20,
 lng: 0,
 altitude: 2.5
 }, 0);
+
+});
 
 </script>
 
