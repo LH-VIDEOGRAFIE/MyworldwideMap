@@ -1,28 +1,29 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Travel Globe</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Travel Globe Pro</title>
 
-  <link rel="stylesheet" href="style.css"/>
+<link rel="stylesheet" href="style.css"/>
 
-  <script src="https://unpkg.com/three"></script>
-  <script src="https://unpkg.com/globe.gl"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://unpkg.com/three"></script>
+<script src="https://unpkg.com/globe.gl"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
 <body>
 
+<div class="burger" onclick="toggleMenu()">☰</div>
+
 <div class="app">
 
-  <!-- 🧭 NAVIGATION -->
-  <div class="sidebar">
+  <div class="sidebar" id="sidebar">
 
-    <h1>🌍 Travel Tracker</h1>
+    <h1>🌍 Travel Tracker Pro</h1>
 
     <div class="form">
-      <input id="countryInput" placeholder="Land (optional)" />
+      <input id="countryInput" placeholder="Land (z. B. Australia)" />
       <input id="cityInput" placeholder="Stadt (z. B. Sydney)" />
 
       <select id="rating">
@@ -34,23 +35,21 @@
       </select>
 
       <button onclick="addTravel()">➕ Hinzufügen</button>
+        <button onclick="deleteTravel()">Löschen</button>
     </div>
 
     <div class="stats">
-      <h3>📊 Statistik</h3>
       <p id="countryCount"></p>
       <p id="cityCount"></p>
     </div>
 
-    <!-- 🗂 LISTE -->
     <div id="countryList"></div>
+    <div id="cityList"></div>
 
-    <canvas id="pieChart"></canvas>
-    <canvas id="barChart"></canvas>
+    <div id="ratingStats"></div>
 
   </div>
 
-  <!-- 🌍 GLOBE -->
   <div id="globeViz"></div>
 
 </div>
